@@ -1,6 +1,6 @@
 
 Parameters:
-    1. Text file name "TextFile"
+    1. Text file name "file"
     2. Semaphore table size "M"
 
 Loop start:

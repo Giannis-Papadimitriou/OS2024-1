@@ -2,8 +2,10 @@ CC=gcc
 CFLAGS=-o
 FILE1=parent
 FILE2=util
-OBJ=$(OBJS_DIR)/$(FILE1).o $(OBJS_DIR)/$(FILE2).o 
-SRC=$(SRC_DIR)/$(FILE1).c $(SRC_DIR)/$(FILE2).c $(SRC_DIR)/main.c
+FILE3=child
+
+OBJ=$(OBJS_DIR)/$(FILE1).o $(OBJS_DIR)/$(FILE2).o $(OBJS_DIR)/$(FILE3).o 
+SRC=$(SRC_DIR)/$(FILE1).c $(SRC_DIR)/$(FILE2).c $(SRC_DIR)/$(FILE3).c $(SRC_DIR)/main.c
 FINAL=main
 
 #Directories
@@ -13,6 +15,8 @@ OBJS_DIR=objs
 #Default target
 all: $(FINAL)
 
+$(OBJS_DIR)/$(FILE3).o: $(HEAD_DIR)/$(FILE3).h $(SRC_DIR)/$(FILE3).c
+	$(CC) -c $(SRC_DIR)/$(FILE3).c -o $(OBJS_DIR)/$(FILE3).o
 
 $(OBJS_DIR)/$(FILE2).o: $(HEAD_DIR)/$(FILE2).h $(SRC_DIR)/$(FILE2).c
 	$(CC) -c $(SRC_DIR)/$(FILE2).c -o $(OBJS_DIR)/$(FILE2).o
@@ -21,7 +25,7 @@ $(OBJS_DIR)/$(FILE1).o: $(HEAD_DIR)/$(FILE1).h $(SRC_DIR)/$(FILE1).c
 	$(CC) -c $(SRC_DIR)/$(FILE1).c -o $(OBJS_DIR)/$(FILE1).o
 
 $(FINAL): $(OBJ) $(SRC)
-	$(CC) $(SRC_DIR)/main.c $(OBJ) -pthread -o $(FINAL)
+	$(CC) $(SRC_DIR)/main.c $(OBJ) -pthread -lrt -o $(FINAL)
 
 clean:
 	rm $(OBJ) $(FINAL)
