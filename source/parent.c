@@ -9,7 +9,9 @@ void main_loop(parent_data data){
     int line_fd = data.line_fd;
     int loop_iter=0;
     printf("%d\n",__LINE__);
-    timestamp_table_innit(data.cf_fd);
+
+    config_map *S_map=NULL,*T_map=NULL;
+    timestamp_table_innit(data.cf_fd,S_map,T_map);
     printf("%d\n",__LINE__);
     memcpy(segment,&loop_iter,sizeof(int));
     while(0){
@@ -22,43 +24,56 @@ void main_loop(parent_data data){
 }
 
 // FILE MUST END WITH NEW LINE
-config_map* timestamp_table_innit(int fd){
+void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
 
     char line[LINE_LIMIT];
     while (get_line(fd,line)!=1)
     {
-        printf("Got line:%s\n",line);
+        //printf("Got line:%s",line);
         char c=line[0]; 
         int i=0;
         char str_timestamp[16];
-        while(c!='-'){
+        while(c!='-')
+        {
             str_timestamp[i]=c;
             c=line[++i];
         }
-        str_timestamp[i+1]='\0';
+        str_timestamp[i]='\0';
         int timestamp = atoi(str_timestamp);
         i++; //skip over the -
 
         int offset=i; //offset from start till the first character after the -
         c=line[i];
         char str_pid[16];
-        while(c!='-'){
+        while(c!='-')
+        {
             str_pid[i-offset]=c;
             c=line[++i];
         }
-        str_pid[i+1]='\0';
+        str_pid[i]='\0';
         int id = atoi(str_pid);
         i++;
-        if(line[i]=='S'){
-            printf("Timestamp:%d - Id:%d - Type:S\n",timestamp,id);
+        if(line[i]=='S')
+        {
+            if (!S_map)
+            {
+                S_map = cmap_init(timestamp,id);
+            }
+            else{
+                add_node(S_map,timestamp,id);
+            }
+            //printf("Timestamp:%d - Id:%d - Type:S\n",timestamp,id);
         }
         else if(line[i]=='T'){
-            printf("Timestamp:%d - Id:%d - Type:T\n",timestamp,id);
+            //printf("Timestamp:%d - Id:%d - Type:T\n",timestamp,id);
         }
         else{ printf("UNEXPECTED CONFIGFILE FORMAT\n");exit(-1);}
 
+
         
     }
+
+    print_map(S_map);
     
 
 }
@@ -78,7 +93,6 @@ void semarr_innit(int num,sems* sems){
     for (int i = 0; i < num; i++)
     {
         sem_name[0]='A'+i;
-        printf("%s\n",sem_name);
         arr[i] = sem_open(sem_name, O_CREAT , 0664, 1);
         if (arr[i] == SEM_FAILED) {
             perror("sem_open(3) error");

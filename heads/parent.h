@@ -17,7 +17,7 @@
 #define SHM_SEGMENT_SIZE 1024   
 #define SEM_NAME_TEMPLATE "AAAparent_sem"
 
-config_map* timestamp_table_innit(int);
+void timestamp_table_innit(int,config_map*,config_map*);
 
 typedef struct {
     sem_t** array;
