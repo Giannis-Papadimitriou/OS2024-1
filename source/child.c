@@ -3,7 +3,24 @@
 
 void child(){
 
-    sleep(1);
+
+    sem_t *semaphore = sem_open(SEM_NAME, O_RDWR);
+    if (semaphore == SEM_FAILED) {
+        perror("sem_open(3) failed");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sem_wait(semaphore) < 0) {
+            perror("sem_wait(3) failed on child");
+    }
+
+    if (sem_post(semaphore) < 0) {
+            perror("sem_post(3) error on child");
+    }
+    if (sem_close(semaphore) < 0)
+        perror("sem_close(3) failed");
+
+
     void *segment;
     int shm_fd = shm_open(SHM_PATH, O_RDWR, 0);
     if (shm_fd == -1) {

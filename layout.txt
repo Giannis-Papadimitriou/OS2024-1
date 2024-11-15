@@ -1,0 +1,28 @@
+
+
+
+main calls parent
+parent initializes:
+    shared memory
+    opens text file
+    opens command file
+    semaphore table
+    starts loop
+    create hashmap with timestamp as key based on command file and close commandfile
+    shared data(current loop time, current children running )
+
+parent enters main mode:
+    starts looping // maybe i is always in shared memory?
+
+        check map for commands that should be executed in curr timestamp
+            terminate old processes
+            check if semaphore available
+            create new proccesses
+        assumption: only 1 message sent per loop
+        check available children
+        send a message
+        if T was called last loop receive exit codes
+
+
+    
+

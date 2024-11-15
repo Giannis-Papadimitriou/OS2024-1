@@ -5,11 +5,11 @@
 
 void main(int argc, char *argv[]) {
 
-    char *file = argv[1];
-
+    char *configfile = "files/configfile.txt";
+    char *textfile = argv[1];
     int id = fork();
-    if (id==0) parent(file);
-    else child();
+    if (id==0) parent(configfile,textfile,atoi(argv[2]));
+    //else child();
 
 
 }
