@@ -60,10 +60,22 @@ void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
             else{
                 add_node(S_map,timestamp,id);
             }
-            //printf("Timestamp:%d - Id:%d - Type:S\n",timestamp,id);
         }
         else if(line[i]=='T'){
-            //printf("Timestamp:%d - Id:%d - Type:T\n",timestamp,id);
+            if (!T_map)
+            {
+                T_map = cmap_init(timestamp,id);
+            }
+            else{
+                printf("\n-----------------------------------\n");
+                print_map(T_map);
+                printf("-----------------------------------\n");
+                add_node(T_map,timestamp,id);
+                printf("\n-----------------------------------\n");
+                print_map(T_map);
+                printf("-----------------------------------\n");
+
+            }
         }
         else{ printf("UNEXPECTED CONFIGFILE FORMAT\n");exit(-1);}
 
@@ -71,7 +83,7 @@ void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
         
     }
 
-    print_map(S_map);
+    print_map(T_map);
     
 
 }

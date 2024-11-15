@@ -23,7 +23,6 @@ void add_node(config_map *cmap, int timestamp, int id){
     newnode->next_node = NULL;
     newnode->next_timestamp_node = NULL;
 
-    printf("-----------------------------------\n");
     printf("Inserting node:%d/%d\n",timestamp,id);
     node* search_node = cmap->first_node; 
     node* previous_node = NULL;
@@ -42,6 +41,9 @@ void add_node(config_map *cmap, int timestamp, int id){
             printf("[2.1]");
             previous_node->next_timestamp_node = newnode;
         }            
+        else{
+            cmap->first_node = newnode;
+        }
         newnode->next_timestamp_node = search_node;
     }
     else if (search_node->timestamp == timestamp){
@@ -57,8 +59,6 @@ void add_node(config_map *cmap, int timestamp, int id){
         printf("[4]");
         search_node->next_timestamp_node = newnode;
     }
-    printf("\n-----------------------------------\n");
-    print_map(cmap);
 
 }
 
