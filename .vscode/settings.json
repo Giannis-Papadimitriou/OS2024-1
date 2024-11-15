@@ -3,6 +3,7 @@
         "fcntl.h": "c",
         "parent.h": "c",
         "util.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "config_map.h": "c"
     }
 }

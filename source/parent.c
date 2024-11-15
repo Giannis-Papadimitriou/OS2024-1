@@ -6,10 +6,13 @@
 void main_loop(parent_data data){
 
     void* segment = data.shm_segment;
-    data.line_fd;
+    int line_fd = data.line_fd;
     int loop_iter=0;
+    printf("%d\n",__LINE__);
+    timestamp_table_innit(data.cf_fd);
+    printf("%d\n",__LINE__);
     memcpy(segment,&loop_iter,sizeof(int));
-    while(1){
+    while(0){
         loop_iter++;
         memcpy(segment,&loop_iter,sizeof(int));
         
@@ -19,11 +22,12 @@ void main_loop(parent_data data){
 }
 
 // FILE MUST END WITH NEW LINE
-void timestamp_table_innit(int fd){
+config_map* timestamp_table_innit(int fd){
 
     char line[LINE_LIMIT];
     while (get_line(fd,line)!=1)
     {
+        printf("Got line:%s\n",line);
         char c=line[0]; 
         int i=0;
         char str_timestamp[16];
@@ -33,7 +37,7 @@ void timestamp_table_innit(int fd){
         }
         str_timestamp[i+1]='\0';
         int timestamp = atoi(str_timestamp);
-        i+=2; //skip over the -
+        i++; //skip over the -
 
         int offset=i; //offset from start till the first character after the -
         c=line[i];
@@ -44,15 +48,16 @@ void timestamp_table_innit(int fd){
         }
         str_pid[i+1]='\0';
         int id = atoi(str_pid);
-        i+=2;
+        i++;
         if(line[i]=='S'){
-
+            printf("Timestamp:%d - Id:%d - Type:S\n",timestamp,id);
         }
         else if(line[i]=='T'){
-
+            printf("Timestamp:%d - Id:%d - Type:T\n",timestamp,id);
         }
         else{ printf("UNEXPECTED CONFIGFILE FORMAT\n");exit(-1);}
 
+        
     }
     
 
@@ -127,9 +132,6 @@ void parent(char* configfile,char* textfile,int sem_num){
     semarr_innit(sem_num,&sems);
 
     //closing
-    if(shm_unlink(SHM_PATH)==-1)perror("unlink fail");
-    if(close(line_fd)==-1)perror("close fail");
-    if(close(cf_fd)==-1)perror("close fail"); 
 
     parent_data data;
     data.cf_fd = cf_fd;
@@ -137,8 +139,13 @@ void parent(char* configfile,char* textfile,int sem_num){
     data.shm_segment = segment;
     data.sems.array = sems.array;
 
-    //main_loop(data);
+    main_loop(data);
+    printf("%d\n",__LINE__);
 
+
+    if(shm_unlink(SHM_PATH)==-1)perror("unlink fail");
+    if(close(line_fd)==-1)perror("close fail");
+    if(close(cf_fd)==-1)perror("close fail"); 
     //Need a loop for the semaphores
     char semnam[14] = SEM_NAME_TEMPLATE;
     for (size_t i = 0; i < sem_num; i++)
@@ -147,8 +154,10 @@ void parent(char* configfile,char* textfile,int sem_num){
         if(sem_close(sems.array[i])==-1)perror("semclose fail");
         if(sem_unlink(semnam)==-1)perror("semunlink fail");
     }
+    printf("%d\n",__LINE__);
 
     free(sems.array);
+    printf("%d\n",__LINE__);
 
     return;
 

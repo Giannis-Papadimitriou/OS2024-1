@@ -10,12 +10,14 @@
 #include <unistd.h>
 
 #include <string.h>
+#include "config_map.h"
 
 #define SEM_NAME "semaphore_example"
 #define SHM_PATH "/parent.c"
 #define SHM_SEGMENT_SIZE 1024   
 #define SEM_NAME_TEMPLATE "AAAparent_sem"
 
+config_map* timestamp_table_innit(int);
 
 typedef struct {
     sem_t** array;
