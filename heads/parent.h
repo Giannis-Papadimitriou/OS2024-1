@@ -21,6 +21,15 @@ typedef struct {
     sem_t** array;
 }sems;
 
+typedef struct {
+    sems sems;
+    int cf_fd;
+    int line_fd;
+    void* shm_segment;
+}parent_data;
+
+void main_loop(parent_data);
+
 void semarr_innit(int,sems*);
 
 int my_open(char*);

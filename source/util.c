@@ -17,6 +17,8 @@ int get_line(int fd,char* buffer){
         buffer[i]=c;
         i++;
     }while(c!='\n' && bytes_read!=0);
+    if(bytes_read==0) return 1;
     buffer[i]='\0';
+    return 0;
 
 }

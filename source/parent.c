@@ -3,6 +3,61 @@
 #include "../heads/util.h"
 #include "../heads/parent.h"
 
+void main_loop(parent_data data){
+
+    void* segment = data.shm_segment;
+    data.line_fd;
+    int loop_iter=0;
+    memcpy(segment,&loop_iter,sizeof(int));
+    while(1){
+        loop_iter++;
+        memcpy(segment,&loop_iter,sizeof(int));
+        
+        
+
+    }
+}
+
+// FILE MUST END WITH NEW LINE
+void timestamp_table_innit(int fd){
+
+    char line[LINE_LIMIT];
+    while (get_line(fd,line)!=1)
+    {
+        char c=line[0]; 
+        int i=0;
+        char str_timestamp[16];
+        while(c!='-'){
+            str_timestamp[i]=c;
+            c=line[++i];
+        }
+        str_timestamp[i+1]='\0';
+        int timestamp = atoi(str_timestamp);
+        i+=2; //skip over the -
+
+        int offset=i; //offset from start till the first character after the -
+        c=line[i];
+        char str_pid[16];
+        while(c!='-'){
+            str_pid[i-offset]=c;
+            c=line[++i];
+        }
+        str_pid[i+1]='\0';
+        int id = atoi(str_pid);
+        i+=2;
+        if(line[i]=='S'){
+
+        }
+        else if(line[i]=='T'){
+
+        }
+        else{ printf("UNEXPECTED CONFIGFILE FORMAT\n");exit(-1);}
+
+    }
+    
+
+}
+
 void semarr_innit(int num,sems* sems){
 
     if (num>57)
@@ -75,6 +130,14 @@ void parent(char* configfile,char* textfile,int sem_num){
     if(shm_unlink(SHM_PATH)==-1)perror("unlink fail");
     if(close(line_fd)==-1)perror("close fail");
     if(close(cf_fd)==-1)perror("close fail"); 
+
+    parent_data data;
+    data.cf_fd = cf_fd;
+    data.line_fd = line_fd;
+    data.shm_segment = segment;
+    data.sems.array = sems.array;
+
+    //main_loop(data);
 
     //Need a loop for the semaphores
     char semnam[14] = SEM_NAME_TEMPLATE;
