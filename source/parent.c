@@ -8,11 +8,9 @@ void main_loop(parent_data data){
     void* segment = data.shm_segment;
     int line_fd = data.line_fd;
     int loop_iter=0;
-    printf("%d\n",__LINE__);
 
     config_map *S_map=NULL,*T_map=NULL;
     timestamp_table_innit(data.cf_fd,S_map,T_map);
-    printf("%d\n",__LINE__);
     memcpy(segment,&loop_iter,sizeof(int));
     while(0){
         loop_iter++;
@@ -50,7 +48,7 @@ void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
             str_pid[i-offset]=c;
             c=line[++i];
         }
-        str_pid[i]='\0';
+        str_pid[i-offset]='\0';
         int id = atoi(str_pid);
         i++;
         if(line[i]=='S')
@@ -154,7 +152,6 @@ void parent(char* configfile,char* textfile,int sem_num){
     data.sems.array = sems.array;
 
     main_loop(data);
-    printf("%d\n",__LINE__);
 
 
     if(shm_unlink(SHM_PATH)==-1)perror("unlink fail");
@@ -168,10 +165,8 @@ void parent(char* configfile,char* textfile,int sem_num){
         if(sem_close(sems.array[i])==-1)perror("semclose fail");
         if(sem_unlink(semnam)==-1)perror("semunlink fail");
     }
-    printf("%d\n",__LINE__);
 
     free(sems.array);
-    printf("%d\n",__LINE__);
 
     return;
 
