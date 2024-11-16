@@ -1,15 +1,17 @@
 #include "../heads/child.h"
 #include "../heads/parent.h"
 
-void child(int position,int shm_size){
+void child(child_data data,int shm_size){
 
-    char* sem_name;
+    char* sem_name = SEM_NAME;
+    sem_name[0]='A'+data.position;
     sem_t *semaphore = sem_open(sem_name, O_RDWR);
     if (semaphore == SEM_FAILED) {
         perror("sem_open(3) failed");
         exit(EXIT_FAILURE);
     }
-
+    int  i=0;
+    printf("%d\n",i++);
     if (sem_wait(semaphore) < 0) {
             perror("sem_wait(3) failed on child");
     }
@@ -17,6 +19,17 @@ void child(int position,int shm_size){
     if (sem_post(semaphore) < 0) {
             perror("sem_post(3) error on child");
     }
+
+    if (sem_wait(semaphore) < 0) {
+            perror("sem_wait(3) failed on child");
+    }
+    printf("%d\n",i++);
+    if (sem_wait(semaphore) < 0) {
+            perror("sem_wait(3) failed on child");
+    }
+    printf("%d\n",i++);
+
+
     if (sem_close(semaphore) < 0)
         perror("sem_close(3) failed");
 

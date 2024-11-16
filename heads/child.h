@@ -12,7 +12,7 @@ typedef struct {
 
 }child_data;
 
-void child(int,int);
+void child(child_data,int);
 
 
 #endif

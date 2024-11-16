@@ -37,11 +37,11 @@ void send_line();
 
 void receive_exitcodes(int* );
 
-int spawn_child(node*,void*);
+int spawn_child(node*,void*,int);
 
 int terminate_child(node*);
 
-void main_loop(parent_data,int);
+void main_loop(parent_data,int,int);
 
 void semarr_innit(int,sem_t***);
 

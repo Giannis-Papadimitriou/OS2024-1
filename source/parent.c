@@ -18,7 +18,7 @@ int terminate_child(node* node){
     printf("Terminating child %d|%d\n",node->timestamp,node->id);
 }
 
-int spawn_child(node* node,void* shm){
+int spawn_child(node* node,void* shm,int shm_size){
     
     child_data data;
     data.id = node->id;
@@ -29,6 +29,8 @@ int spawn_child(node* node,void* shm){
     for (i = 0; curr_block[i].status!=AVAILABLE; i++)
     {
     }
+
+    data.position=i;
     printf("[%d|%d] Position %d Block:%p\n",data.time_created,data.id,i,&(curr_block[i]));
     curr_block[i].status = UNAVAILABLE;
 
@@ -36,16 +38,15 @@ int spawn_child(node* node,void* shm){
     // int pid = fork();
     // if (pid==-1){perror("bad fork");exit(-1);}
     // else if (pid==0){
-    //     //child();
     // }
     // else{
-    //     exit(2);
-    //}
+    //     child(data,shm_size);
+    // }
     
     printf("Spawning child %d|%d\n",node->timestamp,node->id);
 }
 
-void main_loop(parent_data data, int sem_num){
+void main_loop(parent_data data, int sem_num,int shm_size){
 
     void* segment = data.shm_segment;
     int line_fd = data.line_fd;
@@ -75,7 +76,7 @@ void main_loop(parent_data data, int sem_num){
         if(T_map->curr_node->next_timestamp_node)
         check_timestamp_T(loop_iter,T_map); //check if children need termination and do so
         if(S_map->curr_node->next_timestamp_node)
-        check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment);   //same for children spawn
+        check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment,shm_size);   //same for children spawn
         send_line();
         receive_exitcodes(&running_children);
         *shm_loop_iter = loop_iter;
@@ -238,7 +239,8 @@ void parent(char* configfile,char* textfile,int sem_num){
     data.line_fd = line_fd;
     data.shm_segment = segment;
     data.array = array;
-    main_loop(data,sem_num);
+    int shm_size = sizeof(int) +  sem_num*sizeof(block);
+    main_loop(data,sem_num,shm_size);
     int l =  *(int*)segment;
     printf("LOOPS PERFORMED:%d\n",l+1);
 
