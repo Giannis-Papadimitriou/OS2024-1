@@ -5,7 +5,14 @@
 #include <string.h>
 
 
-void child(char*,int);
+typedef struct {
+    int id;
+    int time_created;
+    int position;//index to block in shared memory
+
+}child_data;
+
+void child(int,int);
 
 
 #endif

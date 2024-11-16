@@ -16,21 +16,17 @@
 #define SHM_PATH "/parent.c"
 #define SEM_NAME_TEMPLATE "AAAparent_sem"
 
-enum block_status{
-    EMPTY,
-    SEM_PLACED,
-    EXITED
-};
+typedef enum block_status{
+    UNAVAILABLE,
+    AVAILABLE,
+}block_status;
 
 cmap_addr timestamp_table_innit(int,config_map*,config_map*);
 
+
+
 typedef struct {
     sem_t** array;
-}sems;
-
-
-typedef struct {
-    sems sems;
     int cf_fd;
     int line_fd;
     void* shm_segment;
@@ -41,13 +37,13 @@ void send_line();
 
 void receive_exitcodes(int* );
 
-int spawn_child(node*);
+int spawn_child(node*,void*);
 
 int terminate_child(node*);
 
 void main_loop(parent_data,int);
 
-void semarr_innit(int,sems*);
+void semarr_innit(int,sem_t***);
 
 
 void *shm_innit(int);

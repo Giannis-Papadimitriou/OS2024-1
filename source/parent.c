@@ -2,6 +2,7 @@
 
 #include "../heads/util.h"
 #include "../heads/parent.h"
+#include "../heads/child.h"
 
 
 void send_line(){
@@ -17,8 +18,21 @@ int terminate_child(node* node){
     printf("Terminating child %d|%d\n",node->timestamp,node->id);
 }
 
-int spawn_child(node* node){
+int spawn_child(node* node,void* shm){
+    
+    child_data data;
+    data.id = node->id;
+    data.time_created = node->timestamp;
+    
+    block *curr_block = (block*) (shm + sizeof(int));
+    int i=0;
+    for (i = 0; curr_block[i].status!=AVAILABLE; i++)
+    {
+    }
+    printf("[%d|%d] Position %d Block:%p\n",data.time_created,data.id,i,&(curr_block[i]));
+    curr_block[i].status = UNAVAILABLE;
 
+    
     // int pid = fork();
     // if (pid==-1){perror("bad fork");exit(-1);}
     // else if (pid==0){
@@ -26,7 +40,7 @@ int spawn_child(node* node){
     // }
     // else{
     //     exit(2);
-    // }
+    //}
     
     printf("Spawning child %d|%d\n",node->timestamp,node->id);
 }
@@ -37,7 +51,10 @@ void main_loop(parent_data data, int sem_num){
     int line_fd = data.line_fd;
 
     int loop_iter=-1,running_children=0;
-    memcpy(segment,&loop_iter,sizeof(int));
+    //memcpy(segment,&loop_iter,sizeof(int));
+    
+    int* shm_loop_iter = (int*)segment;
+    *shm_loop_iter = loop_iter;
 
     config_map *S_map=NULL,*T_map=NULL;
     cmap_addr ptr = timestamp_table_innit(data.cf_fd,S_map,T_map);
@@ -53,16 +70,15 @@ void main_loop(parent_data data, int sem_num){
 
     void* child_space_start =  segment + sizeof(int);
 
-    while(loop_iter<100){
+    while(loop_iter<104){
         loop_iter++;   
-        printf("Loop:%d\n",loop_iter);
         if(T_map->curr_node->next_timestamp_node)
         check_timestamp_T(loop_iter,T_map); //check if children need termination and do so
         if(S_map->curr_node->next_timestamp_node)
-        check_timestamp_S(loop_iter,S_map,&running_children,sem_num);   //same for children spawn
+        check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment);   //same for children spawn
         send_line();
-        memcpy(segment,&loop_iter,sizeof(int));
         receive_exitcodes(&running_children);
+        *shm_loop_iter = loop_iter;
     }
 
 
@@ -137,7 +153,7 @@ cmap_addr timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
     return ret;
 }
 
-void semarr_innit(int num,sems* sems){
+void semarr_innit(int num,sem_t*** array){
 
     if (num>57)
     {
@@ -146,7 +162,7 @@ void semarr_innit(int num,sems* sems){
     }
     
 
-    sem_t** arr = sems->array;
+    sem_t** arr = *array;
 
     char sem_name[14] = SEM_NAME_TEMPLATE;
     for (int i = 0; i < num; i++)
@@ -176,6 +192,16 @@ void* shm_innit(int num){
         exit(-1);
     }
     void *segment = mmap(NULL, sizeof(char)*shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    block *curr_block = (block*) (segment + sizeof(int));
+    printf("inner is %p\n",curr_block);
+
+    for (size_t i = 0; i < num; i++)
+    {
+        curr_block[i].status = AVAILABLE;
+    }
+    
+
+    printf("Size:%d\n",shm_size);
     if (segment == MAP_FAILED){
         perror("mmap fail");
         exit(-1);
@@ -194,18 +220,44 @@ void parent(char* configfile,char* textfile,int sem_num){
     //shared memory innit
     void* segment = shm_innit(sem_num);
     //semaphores innit 
-    sems sems;
-    sems.array=malloc(sem_num*sizeof(sem_t*));
-    semarr_innit(sem_num,&sems);
+    sem_t **array=malloc(sem_num*sizeof(sem_t*));
+    semarr_innit(sem_num,&array);
+    printf("ssssss\n");
+
+
+    printf("ssssss\n");
+
+    
+
+    
+    
 
     //closing
     parent_data data;
     data.cf_fd = cf_fd;
     data.line_fd = line_fd;
     data.shm_segment = segment;
-    data.sems.array = sems.array;
-
+    data.array = array;
     main_loop(data,sem_num);
+    int l =  *(int*)segment;
+    printf("LOOPS PERFORMED:%d\n",l+1);
+
+    block* cur = (block*) (segment+sizeof(int));
+    printf("pointer is %p\n",cur);
+    for (int i = 0; i < sem_num; i++)
+    {
+        if (cur[i].status==AVAILABLE)
+        {
+            printf("%d AVAILABLE\n",i);
+        }
+        else if (cur[i].status==UNAVAILABLE)
+        {
+            printf("%d UNAVAILABLE\n",i);
+        }
+        else printf("PANIC\n\n\n");
+        
+    }
+
 
 
     if(shm_unlink(SHM_PATH)==-1)perror("unlink fail");
@@ -215,14 +267,9 @@ void parent(char* configfile,char* textfile,int sem_num){
     for (size_t i = 0; i < sem_num; i++)
     {
         semnam[0]='A'+i;
-        if(sem_close(sems.array[i])==-1)perror("semclose fail");
+        if(sem_close(array[i])==-1)perror("semclose fail");
         if(sem_unlink(semnam)==-1)perror("semunlink fail");
     }
-
-    free(sems.array);
-
+    free(array);
     return;
-
-
-
 }

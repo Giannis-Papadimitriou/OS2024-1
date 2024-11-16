@@ -18,11 +18,11 @@ int check_timestamp_T(int timestamp,config_map* T_map){
     }
 }
 
-int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num){
+int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num,void* shm){
     node* S_curr=S_map->curr_node;
     if (S_curr->timestamp == timestamp){
         while (S_curr && *running_children < sem_num){
-            spawn_child(S_curr); 
+            spawn_child(S_curr,shm); 
             (*running_children)++;
             S_curr=S_curr->next_node;
         }

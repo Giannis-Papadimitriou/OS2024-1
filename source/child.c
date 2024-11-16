@@ -1,9 +1,9 @@
 #include "../heads/child.h"
 #include "../heads/parent.h"
 
-void child(char* sem_name,int shm_size){
+void child(int position,int shm_size){
 
-
+    char* sem_name;
     sem_t *semaphore = sem_open(sem_name, O_RDWR);
     if (semaphore == SEM_FAILED) {
         perror("sem_open(3) failed");
