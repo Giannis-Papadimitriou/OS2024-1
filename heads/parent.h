@@ -12,7 +12,6 @@
 #include <string.h>
 #include "config_map.h"
 
-#define SEM_NAME "semaphore_example"
 #define SHM_PATH "/parent.c"
 #define SEM_NAME_TEMPLATE "AAAparent_sem"
 

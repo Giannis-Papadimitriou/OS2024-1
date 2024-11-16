@@ -92,6 +92,8 @@ void add_node(config_map *cmap, int timestamp, int id){
 
 void print_map(config_map* cmap){
 
+    if(!cmap) return;
+
     node* curr = cmap->first_node;
     //printf("Currnode:%d|%d\n",cmap->curr_node->timestamp,cmap->curr_node->id);
 

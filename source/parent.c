@@ -5,6 +5,9 @@
 #include "../heads/child.h"
 
 
+//TEMP
+parent_data *p_data=NULL;
+
 void send_line(){
     
 }
@@ -20,9 +23,9 @@ int terminate_child(node* node){
 
 int spawn_child(node* node,void* shm,int shm_size){
     
-    child_data data;
-    data.id = node->id;
-    data.time_created = node->timestamp;
+    child_data child_data;
+    child_data.id = node->id;
+    child_data.time_created = node->timestamp;
     
     block *curr_block = (block*) (shm + sizeof(int));
     int i=0;
@@ -30,18 +33,38 @@ int spawn_child(node* node,void* shm,int shm_size){
     {
     }
 
-    data.position=i;
-    printf("[%d|%d] Position %d Block:%p\n",data.time_created,data.id,i,&(curr_block[i]));
+    child_data.position=i;
+    printf("[%d|%d] Position %d Block:%p\n",child_data.time_created,child_data.id,i,&(curr_block[i]));
     curr_block[i].status = UNAVAILABLE;
 
     
-    // int pid = fork();
-    // if (pid==-1){perror("bad fork");exit(-1);}
-    // else if (pid==0){
-    // }
-    // else{
-    //     child(data,shm_size);
-    // }
+    int pid = fork();
+    if (pid==-1){perror("bad fork");exit(-1);}
+    else if (pid==0){
+        printf("\n\n\n\n\n");
+        sleep(3);
+        printf("Posting1\n");
+        if (sem_post(p_data->array[i]) < 0) {
+            perror("sem_post(3) error parent");
+        }
+        
+        sleep(3);
+        printf("Posting2\n");
+        if (sem_post(p_data->array[i]) < 0) {
+            perror("sem_post(3) error parent");
+        }
+        sleep(3);
+        printf("Posting3\n");
+        if (sem_post(p_data->array[i]) < 0) {
+            perror("sem_post(3) error parent");
+        }
+
+    }
+    else{
+        printf("Child starting\n");
+        sleep(1);
+        child(child_data,shm_size);
+    }
     
     printf("Spawning child %d|%d\n",node->timestamp,node->id);
 }
@@ -52,30 +75,33 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     int line_fd = data.line_fd;
 
     int loop_iter=-1,running_children=0;
-    //memcpy(segment,&loop_iter,sizeof(int));
     
     int* shm_loop_iter = (int*)segment;
     *shm_loop_iter = loop_iter;
 
     config_map *S_map=NULL,*T_map=NULL;
     cmap_addr ptr = timestamp_table_innit(data.cf_fd,S_map,T_map);
+    p_data = &data;
 
     T_map = ptr.T_mapaddr;
     S_map = ptr.S_mapaddr;
 
     printf("Prints:\n");
+    if(S_map)
     print_map(S_map);
     printf("------\n");
+    if(T_map)
     print_map(T_map);
     printf("------\n");
 
     void* child_space_start =  segment + sizeof(int);
 
-    while(loop_iter<104){
+    while(loop_iter<105){
         loop_iter++;   
-        if(T_map->curr_node->next_timestamp_node)
+        //printf("Loop:%d\n",loop_iter);
+        if( T_map  && T_map->curr_node )
         check_timestamp_T(loop_iter,T_map); //check if children need termination and do so
-        if(S_map->curr_node->next_timestamp_node)
+        if(S_map && S_map->curr_node)
         check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment,shm_size);   //same for children spawn
         send_line();
         receive_exitcodes(&running_children);
@@ -143,7 +169,9 @@ cmap_addr timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
 
         
     }
+    if(T_map)
     T_map->curr_node =T_map->first_node;
+    if(S_map)
     S_map->curr_node =S_map->first_node;
 
     cmap_addr ret;
@@ -223,10 +251,8 @@ void parent(char* configfile,char* textfile,int sem_num){
     //semaphores innit 
     sem_t **array=malloc(sem_num*sizeof(sem_t*));
     semarr_innit(sem_num,&array);
-    printf("ssssss\n");
 
 
-    printf("ssssss\n");
 
     
 
@@ -242,23 +268,9 @@ void parent(char* configfile,char* textfile,int sem_num){
     int shm_size = sizeof(int) +  sem_num*sizeof(block);
     main_loop(data,sem_num,shm_size);
     int l =  *(int*)segment;
-    printf("LOOPS PERFORMED:%d\n",l+1);
 
     block* cur = (block*) (segment+sizeof(int));
-    printf("pointer is %p\n",cur);
-    for (int i = 0; i < sem_num; i++)
-    {
-        if (cur[i].status==AVAILABLE)
-        {
-            printf("%d AVAILABLE\n",i);
-        }
-        else if (cur[i].status==UNAVAILABLE)
-        {
-            printf("%d UNAVAILABLE\n",i);
-        }
-        else printf("PANIC\n\n\n");
-        
-    }
+
 
 
 
