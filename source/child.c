@@ -1,10 +1,10 @@
 #include "../heads/child.h"
 #include "../heads/parent.h"
 
-void child(){
+void child(char* sem_name,int shm_size){
 
 
-    sem_t *semaphore = sem_open(SEM_NAME, O_RDWR);
+    sem_t *semaphore = sem_open(sem_name, O_RDWR);
     if (semaphore == SEM_FAILED) {
         perror("sem_open(3) failed");
         exit(EXIT_FAILURE);
@@ -28,7 +28,7 @@ void child(){
         exit(-1);
     }
 
-    segment = mmap(NULL, sizeof(char)*SHM_SEGMENT_SIZE, PROT_READ | PROT_WRITE,
+    segment = mmap(NULL, sizeof(char)*shm_size, PROT_READ | PROT_WRITE,
                 MAP_SHARED, shm_fd, 0);
     if (segment == MAP_FAILED){
         perror("mmap fail");

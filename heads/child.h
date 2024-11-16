@@ -5,7 +5,7 @@
 #include <string.h>
 
 
-void child();
+void child(char*,int);
 
 
 #endif

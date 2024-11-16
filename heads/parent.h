@@ -39,6 +39,8 @@ typedef struct {
 
 void send_line();
 
+void receive_exitcodes(int* );
+
 int spawn_child(node*);
 
 int terminate_child(node*);

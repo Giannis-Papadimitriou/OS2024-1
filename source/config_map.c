@@ -3,6 +3,12 @@
 
 int check_timestamp_T(int timestamp,config_map* T_map){
     node* T_curr=T_map->curr_node;
+    
+    if (!T_curr){
+        printf("Bad\n");
+    }
+    
+    
     if (T_curr->timestamp == timestamp){
         while (T_curr){
             terminate_child(T_curr); 
@@ -23,8 +29,8 @@ int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int 
 
         if (S_curr && *running_children == sem_num)
         {
-            //slots are full but we still have to create a child
-            //exit gracefully 
+            printf("Too many processes\n");
+            exit(0);
         }
         S_map->curr_node = S_map->curr_node->next_timestamp_node;
     }
@@ -87,7 +93,7 @@ void add_node(config_map *cmap, int timestamp, int id){
 void print_map(config_map* cmap){
 
     node* curr = cmap->first_node;
-    printf("Currnode:%d|%d\n",cmap->curr_node->timestamp,cmap->curr_node->id);
+    //printf("Currnode:%d|%d\n",cmap->curr_node->timestamp,cmap->curr_node->id);
 
 
     while (curr){

@@ -8,11 +8,26 @@ void send_line(){
     
 }
 
+void receive_exitcodes(int* running_children){
+    //do the *runninchildren--
+
+}
+
 int terminate_child(node* node){
     printf("Terminating child %d|%d\n",node->timestamp,node->id);
 }
 
 int spawn_child(node* node){
+
+    // int pid = fork();
+    // if (pid==-1){perror("bad fork");exit(-1);}
+    // else if (pid==0){
+    //     //child();
+    // }
+    // else{
+    //     exit(2);
+    // }
+    
     printf("Spawning child %d|%d\n",node->timestamp,node->id);
 }
 
@@ -27,32 +42,31 @@ void main_loop(parent_data data, int sem_num){
     config_map *S_map=NULL,*T_map=NULL;
     cmap_addr ptr = timestamp_table_innit(data.cf_fd,S_map,T_map);
 
-
     T_map = ptr.T_mapaddr;
     S_map = ptr.S_mapaddr;
+
+    printf("Prints:\n");
+    print_map(S_map);
+    printf("------\n");
+    print_map(T_map);
+    printf("------\n");
 
     void* child_space_start =  segment + sizeof(int);
 
     while(loop_iter<100){
-        loop_iter++;
-        
-        check_timestamp_T(loop_iter,T_map);
-
-        check_timestamp_S(loop_iter,S_map,&running_children,sem_num);
-
-        
-
-        
+        loop_iter++;   
+        printf("Loop:%d\n",loop_iter);
+        if(T_map->curr_node->next_timestamp_node)
+        check_timestamp_T(loop_iter,T_map); //check if children need termination and do so
+        if(S_map->curr_node->next_timestamp_node)
+        check_timestamp_S(loop_iter,S_map,&running_children,sem_num);   //same for children spawn
         send_line();
-        
-
         memcpy(segment,&loop_iter,sizeof(int));
-        
-        //afte receiving child exit reduce 
-        //running_children--;
-        
-
+        receive_exitcodes(&running_children);
     }
+
+
+    printf("======\n======\n======\n======\n");
     print_map(T_map);
     printf("--%d--\n",running_children);
     print_map(S_map);
