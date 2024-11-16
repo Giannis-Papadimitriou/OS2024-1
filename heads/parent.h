@@ -14,14 +14,20 @@
 
 #define SEM_NAME "semaphore_example"
 #define SHM_PATH "/parent.c"
-#define SHM_SEGMENT_SIZE 1024   
 #define SEM_NAME_TEMPLATE "AAAparent_sem"
 
-void timestamp_table_innit(int,config_map*,config_map*);
+enum block_status{
+    EMPTY,
+    SEM_PLACED,
+    EXITED
+};
+
+cmap_addr timestamp_table_innit(int,config_map*,config_map*);
 
 typedef struct {
     sem_t** array;
 }sems;
+
 
 typedef struct {
     sems sems;
@@ -30,13 +36,19 @@ typedef struct {
     void* shm_segment;
 }parent_data;
 
-void main_loop(parent_data);
+
+void send_line();
+
+int spawn_child(node*);
+
+int terminate_child(node*);
+
+void main_loop(parent_data,int);
 
 void semarr_innit(int,sems*);
 
-int my_open(char*);
 
-void *shm_innit();
+void *shm_innit(int);
 
 void parent(char*,char*,int);
 

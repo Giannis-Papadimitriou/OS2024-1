@@ -1,9 +1,38 @@
 #include "../heads/config_map.h"
+#include "../heads/parent.h"
 
+int check_timestamp_T(int timestamp,config_map* T_map){
+    node* T_curr=T_map->curr_node;
+    if (T_curr->timestamp == timestamp){
+        while (T_curr){
+            terminate_child(T_curr); 
+            T_curr=T_curr->next_node;
+        }
+        T_map->curr_node = T_map->curr_node->next_timestamp_node;
+    }
+}
+
+int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num){
+    node* S_curr=S_map->curr_node;
+    if (S_curr->timestamp == timestamp){
+        while (S_curr && *running_children < sem_num){
+            spawn_child(S_curr); 
+            (*running_children)++;
+            S_curr=S_curr->next_node;
+        }
+
+        if (S_curr && *running_children == sem_num)
+        {
+            //slots are full but we still have to create a child
+            //exit gracefully 
+        }
+        S_map->curr_node = S_map->curr_node->next_timestamp_node;
+    }
+
+}
 
 config_map* cmap_init(int timestamp, int id){
     config_map* cmap = malloc(sizeof(config_map));
-    printf("Starting node %d/%d\n",timestamp,id);
 
     node* newnode = malloc(sizeof(node));
     newnode->id = id;
@@ -23,22 +52,17 @@ void add_node(config_map *cmap, int timestamp, int id){
     newnode->next_node = NULL;
     newnode->next_timestamp_node = NULL;
 
-    printf("Inserting node:%d/%d\n",timestamp,id);
     node* search_node = cmap->first_node; 
     node* previous_node = NULL;
     while ( search_node->next_timestamp_node && search_node->timestamp < newnode->timestamp){
-        printf("[1]");
         previous_node = search_node;
         search_node = search_node->next_timestamp_node;
     }
 
-    printf("[search:%d/%d|new:%d/%d]",search_node->timestamp,search_node->id,newnode->timestamp,newnode->id);
     
     
     if (search_node->timestamp > timestamp){
-        printf("[2]");
         if (previous_node){
-            printf("[2.1]");
             previous_node->next_timestamp_node = newnode;
         }            
         else{
@@ -47,7 +71,6 @@ void add_node(config_map *cmap, int timestamp, int id){
         newnode->next_timestamp_node = search_node;
     }
     else if (search_node->timestamp == timestamp){
-        printf("[3]");
         node* curr_node = search_node;
         while (curr_node->next_node)
         {
@@ -56,7 +79,6 @@ void add_node(config_map *cmap, int timestamp, int id){
         curr_node->next_node = newnode;
     }
     else{       //new node has largest timestamp
-        printf("[4]");
         search_node->next_timestamp_node = newnode;
     }
 
@@ -65,6 +87,8 @@ void add_node(config_map *cmap, int timestamp, int id){
 void print_map(config_map* cmap){
 
     node* curr = cmap->first_node;
+    printf("Currnode:%d|%d\n",cmap->curr_node->timestamp,cmap->curr_node->id);
+
 
     while (curr){
         printf("Timestamp:%d/",curr->timestamp);
@@ -77,6 +101,4 @@ void print_map(config_map* cmap){
         printf("\n");
         curr=curr->next_timestamp_node;
     }
-    
-
 }

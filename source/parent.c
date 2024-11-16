@@ -3,30 +3,66 @@
 #include "../heads/util.h"
 #include "../heads/parent.h"
 
-void main_loop(parent_data data){
+
+void send_line(){
+    
+}
+
+int terminate_child(node* node){
+    printf("Terminating child %d|%d\n",node->timestamp,node->id);
+}
+
+int spawn_child(node* node){
+    printf("Spawning child %d|%d\n",node->timestamp,node->id);
+}
+
+void main_loop(parent_data data, int sem_num){
 
     void* segment = data.shm_segment;
     int line_fd = data.line_fd;
-    int loop_iter=0;
+
+    int loop_iter=-1,running_children=0;
+    memcpy(segment,&loop_iter,sizeof(int));
 
     config_map *S_map=NULL,*T_map=NULL;
-    timestamp_table_innit(data.cf_fd,S_map,T_map);
-    memcpy(segment,&loop_iter,sizeof(int));
-    while(0){
+    cmap_addr ptr = timestamp_table_innit(data.cf_fd,S_map,T_map);
+
+
+    T_map = ptr.T_mapaddr;
+    S_map = ptr.S_mapaddr;
+
+    void* child_space_start =  segment + sizeof(int);
+
+    while(loop_iter<100){
         loop_iter++;
+        
+        check_timestamp_T(loop_iter,T_map);
+
+        check_timestamp_S(loop_iter,S_map,&running_children,sem_num);
+
+        
+
+        
+        send_line();
+        
+
         memcpy(segment,&loop_iter,sizeof(int));
         
+        //afte receiving child exit reduce 
+        //running_children--;
         
 
     }
+    print_map(T_map);
+    printf("--%d--\n",running_children);
+    print_map(S_map);
 }
 
 // FILE MUST END WITH NEW LINE
-void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
+cmap_addr timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
 
     char line[LINE_LIMIT];
-    while (get_line(fd,line)!=1)
-    {
+    while (get_line(fd,line)!=1){
         //printf("Got line:%s",line);
         char c=line[0]; 
         int i=0;
@@ -67,13 +103,7 @@ void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
                 T_map = cmap_init(timestamp,id);
             }
             else{
-                printf("\n-----------------------------------\n");
-                print_map(T_map);
-                printf("-----------------------------------\n");
                 add_node(T_map,timestamp,id);
-                printf("\n-----------------------------------\n");
-                print_map(T_map);
-                printf("-----------------------------------\n");
 
             }
         }
@@ -82,10 +112,15 @@ void timestamp_table_innit(int fd,config_map* S_map, config_map* T_map){
 
         
     }
+    T_map->curr_node =T_map->first_node;
+    S_map->curr_node =S_map->first_node;
 
-    print_map(T_map);
-    
+    cmap_addr ret;
+    ret.S_mapaddr = S_map;
+    ret.T_mapaddr = T_map;
 
+    if(close(fd)==-1)perror("close fail"); 
+    return ret;
 }
 
 void semarr_innit(int num,sems* sems){
@@ -112,7 +147,7 @@ void semarr_innit(int num,sems* sems){
     return;
 }
 
-void* shm_innit(){
+void* shm_innit(int num){
 
     int shm_fd = shm_open(SHM_PATH, O_CREAT | O_EXCL | O_RDWR, 0600);
     if (shm_fd == -1) {
@@ -120,11 +155,13 @@ void* shm_innit(){
         exit(-1);
     }
 
-    if (ftruncate(shm_fd, sizeof(char)*SHM_SEGMENT_SIZE)==-1) {
+    int shm_size = sizeof(int) +  num*sizeof(block);
+
+    if (ftruncate(shm_fd, sizeof(char)*shm_size)==-1) {
         perror("truncate fail");
         exit(-1);
     }
-    void *segment = mmap(NULL, sizeof(char)*SHM_SEGMENT_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    void *segment = mmap(NULL, sizeof(char)*shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (segment == MAP_FAILED){
         perror("mmap fail");
         exit(-1);
@@ -133,15 +170,7 @@ void* shm_innit(){
     return segment;
 }
 
-int my_open(char* filename){
 
-    int fd = open(filename, O_RDONLY);
-    if (fd == -1) {
-        perror("Failed to open file");
-        exit(-1);
-    }
-    return fd;
-}
 
 void parent(char* configfile,char* textfile,int sem_num){
     //config file open
@@ -149,26 +178,24 @@ void parent(char* configfile,char* textfile,int sem_num){
     //textfile open
     int line_fd = my_open(textfile);
     //shared memory innit
-    void* segment = shm_innit();
+    void* segment = shm_innit(sem_num);
     //semaphores innit 
     sems sems;
     sems.array=malloc(sem_num*sizeof(sem_t*));
     semarr_innit(sem_num,&sems);
 
     //closing
-
     parent_data data;
     data.cf_fd = cf_fd;
     data.line_fd = line_fd;
     data.shm_segment = segment;
     data.sems.array = sems.array;
 
-    main_loop(data);
+    main_loop(data,sem_num);
 
 
     if(shm_unlink(SHM_PATH)==-1)perror("unlink fail");
     if(close(line_fd)==-1)perror("close fail");
-    if(close(cf_fd)==-1)perror("close fail"); 
     //Need a loop for the semaphores
     char semnam[14] = SEM_NAME_TEMPLATE;
     for (size_t i = 0; i < sem_num; i++)

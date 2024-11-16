@@ -6,6 +6,15 @@
 
 #include "../heads/util.h"
 
+int my_open(char* filename){
+
+    int fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        perror("Failed to open file");
+        exit(-1);
+    }
+    return fd;
+}
 
 int get_line(int fd,char* buffer){
     
