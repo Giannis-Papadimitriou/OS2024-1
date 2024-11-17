@@ -46,7 +46,7 @@ void child(child_data data,int shm_size){
         if (sem_wait(semaphore) < 0) {
             perror("sem_wait(3) failed on child");
         }
-        printf("Child [%d|%d] passed\n",data.time_created,data.id);
+        printf("Child [%d|%d] passed:%d\n",data.time_created,data.id,my_block->status);
         if (my_block->status==LINEINBUFFER){
             char line[LINE_LIMIT];
             //assume null terminated

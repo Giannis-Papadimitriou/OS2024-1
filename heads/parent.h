@@ -36,6 +36,7 @@ typedef struct {
     int line_fd;
     void* shm_segment;
     int* process_array;
+    int sem_num;
 }parent_data;
 
 

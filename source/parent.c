@@ -13,7 +13,7 @@ void send_line(parent_data* data,int sem_num){
     block* curr_block = (block*) (data->shm_segment + sizeof(int));
     int i=0;
     while (curr_block[i].status!=WAITING){   
-//        printf("|Arr[%d]:%d|",i,curr_block[i].status);
+       printf("|Arr[%d]:%d|",i,curr_block[i].status);
         i++;
         if (i==sem_num ){
             //printf("All children are busy\n");
@@ -36,27 +36,29 @@ void send_line(parent_data* data,int sem_num){
 
 int terminate_child(node* node,int* running_children,int* process_array,void* shm,int* terminated_last_loop){
     int i=0,children_checked=0;
-
-    while (process_array[i]!=node->id && children_checked < *running_children){
-        i++;
+    printf("\nChecking if should terminate %d\n",node->id);
+    while (i<p_data->sem_num && process_array[i]!=node->id && children_checked < *running_children){
         if (process_array[i]!=0){
             children_checked++;
         }
+        i++;
     }
 
+    for (int j = 0; j < p_data->sem_num ; j++)
+    {
+        printf("process_array[%d]:%d|",j,process_array[j]);
+    }
+    
+
     block* curr_block = (block*) (shm + sizeof(int));
-    if (children_checked==*running_children)
+    if (i==p_data->sem_num || process_array[i]!=node->id)
     {
         printf("Issued termination command to nonexistent child[%d|%d]\n",children_checked,*running_children);
         return -1;
     }
-    else {
-        usleep(100000);
-        if (curr_block[i].status==LINEINBUFFER)
-        {
-            printf("Can't terminate child currently reading from shared memory\n");
-            return -1;
-        }
+    else if (curr_block[i].status==LINEINBUFFER){
+        printf("Can't terminate child currently reading from shared memory\n");
+        return -1;
     }
     
     
@@ -343,6 +345,7 @@ void parent(char* configfile,char* textfile,int sem_num){
     data.line_fd = line_fd;
     data.shm_segment = segment;
     data.array = array;
+    data.sem_num = sem_num;
     int shm_size = sizeof(int) +  sem_num*sizeof(block);
     main_loop(data,sem_num,shm_size);
     int l =  *(int*)segment;
