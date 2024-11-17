@@ -1,12 +1,12 @@
 #include "../heads/config_map.h"
 #include "../heads/parent.h"
 
-int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int* process_array,void* shm){
+int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int* process_array,void* shm,int* terminated_last_loop){
     node* T_curr=T_map->curr_node;
 
     if (T_curr->timestamp == timestamp){
         while (T_curr){
-            terminate_child(T_curr,running_children,process_array,shm); 
+            terminate_child(T_curr,running_children,process_array,shm,terminated_last_loop); 
             T_curr=T_curr->next_node;
         }
         T_map->curr_node = T_map->curr_node->next_timestamp_node;

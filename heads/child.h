@@ -10,7 +10,7 @@ typedef struct {
     int id;
     int time_created;
     int position;//index to block in shared memory
-
+    int pid;
 }child_data;
 
 sem_t* child_sem_open(int);

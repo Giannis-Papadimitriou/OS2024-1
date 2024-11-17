@@ -9,15 +9,14 @@
 parent_data *p_data=NULL;
 
 void send_line(parent_data* data,int sem_num){
-    static int j=0;
 
     block* curr_block = (block*) (data->shm_segment + sizeof(int));
     int i=0;
     while (curr_block[i].status!=WAITING){   
-        printf("|Arr[%d]:%d|",i,curr_block[i].status);
+//        printf("|Arr[%d]:%d|",i,curr_block[i].status);
         i++;
         if (i==sem_num ){
-            if (j++<5) printf("All children are busy\n");
+            //printf("All children are busy\n");
             return;
         }
     }
@@ -32,15 +31,10 @@ void send_line(parent_data* data,int sem_num){
 
 }
 
-void receive_exitcodes(int* running_children){
 
-    //do the *runninchildren--
-    //change enum to something
-    //sempost to wake them up 
 
-}
 
-int terminate_child(node* node,int* running_children,int* process_array,void* shm){
+int terminate_child(node* node,int* running_children,int* process_array,void* shm,int* terminated_last_loop){
     int i=0,children_checked=0;
 
     while (process_array[i]!=node->id && children_checked < *running_children){
@@ -49,16 +43,26 @@ int terminate_child(node* node,int* running_children,int* process_array,void* sh
             children_checked++;
         }
     }
+
+    block* curr_block = (block*) (shm + sizeof(int));
     if (children_checked==*running_children)
     {
-        printf("Issued termination command to nonexistent child\n");
+        printf("Issued termination command to nonexistent child[%d|%d]\n",children_checked,*running_children);
         return -1;
     }
+    else {
+        usleep(100000);
+        if (curr_block[i].status==LINEINBUFFER)
+        {
+            printf("Can't terminate child currently reading from shared memory\n");
+            return -1;
+        }
+    }
+    
     
     (*running_children)--;
     
-    
-    block* curr_block = (block*) (shm + sizeof(int));
+    memcpy(&(curr_block[i]),shm,sizeof(int));   //write loop for child to read 
     curr_block[i].status=TERMINATE;
     process_array[i]=0;
     if (sem_post(p_data->array[i]) < 0) {
@@ -82,7 +86,8 @@ int spawn_child(node* node,void* shm,int shm_size,int* process_array){
     curr_block[i].status = BUILDING;
 
     
-    int pid = fork();
+    pid_t pid = fork();
+    child_data.pid = pid;
     if (pid==-1){perror("bad fork");exit(-1);}
     else if (pid==0){
         printf("Spawn %d:%d\n",i,child_data.id);
@@ -97,7 +102,11 @@ int spawn_child(node* node,void* shm,int shm_size,int* process_array){
 void main_loop(parent_data data, int sem_num,int shm_size){
 
     int* process_array = malloc(sizeof(int)*sem_num);
-    for (int i = 0; i < sem_num; i++) process_array[i]=0;
+    int* terminated_last_loop = malloc(sizeof(int)*sem_num);
+    for (int i = 0; i < sem_num; i++){
+        process_array[i]=0;
+        terminated_last_loop[i]=0;
+    }
     
 
     void* segment = data.shm_segment;
@@ -120,26 +129,43 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     printf("Spawns:\n");
     print_map(S_map);
 
-    void* child_space_start =  segment + sizeof(int);
+
+    block* curr_block = (block*) (segment + sizeof(int));
     while(loop_iter<10){
+        // for (int i = 0; i < sem_num; i++){
+
+        //     if (curr_block[i].status==EXITED){
+        //         printf("\n\nFound one:%d\n\n",i);
+        //         int status;
+        //         pid_t exited_pid=*((pid_t*)(curr_block->line));
+        //         waitpid(exited_pid, &status, 0);  // Wait for the child to terminate
+        //         if (WIFEXITED(status)) {
+        //             int exit_code = WEXITSTATUS(status);
+        //             printf("Child exited with code: %d\n", exit_code);
+        //         }
+        //         curr_block[i].status=AVAILABLE;
+        //     }   
+        // }
+        
+
         loop_iter++;   
         *shm_loop_iter = loop_iter;
-        if( T_map  && T_map->curr_node)
-        check_timestamp_T(loop_iter,T_map,&running_children,process_array,segment); //check if children need termination and do so
+        if( T_map && T_map->curr_node)
+        check_timestamp_T(loop_iter,T_map,&running_children,process_array,segment,terminated_last_loop); //check if children need termination and do so
         if(S_map && S_map->curr_node)
         check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment,shm_size,process_array);   //same for children spawn
         if (running_children!=0)
         send_line(&data,sem_num);
-        //receive_exitcodes(&running_children);
     }
     
     
     
     //waiting for exit codes should fix this
     sleep(3);
-    block* curr_block = (block*) (segment + sizeof(int));
+    curr_block = (block*) (segment + sizeof(int));
     for (int i = 0; i < sem_num; i++){
         if (process_array[i]!=0){
+            memcpy(&(curr_block[i]),segment,sizeof(int));   //write loop for child to read
             curr_block[i].status=FORCE_TERMINATE;
             process_array[i]=0;
             if (sem_post(p_data->array[i]) < 0) {
@@ -159,6 +185,11 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     {
         printf("[%d|%d]",i,process_array[i]);
     }
+
+    free(process_array);
+    free(terminated_last_loop);
+    process_array=NULL;
+    terminated_last_loop=NULL;
 
     
     

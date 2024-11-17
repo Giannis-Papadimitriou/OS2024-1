@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include <string.h>
 #include "config_map.h"
@@ -22,6 +23,7 @@ typedef enum block_status{
     TERMINATE,
     FORCE_TERMINATE,
     BUILDING,
+    EXITED,
 }block_status;
 
 cmap_addr timestamp_table_innit(int,config_map*,config_map*);
@@ -33,16 +35,17 @@ typedef struct {
     int cf_fd;
     int line_fd;
     void* shm_segment;
+    int* process_array;
 }parent_data;
 
 
 void send_line(parent_data*,int);
 
-void receive_exitcodes(int* );
+//void receive_exitcodes(int* );
 
 int spawn_child(node*,void*,int,int*);
 
-int terminate_child(node*,int*,int*,void*);
+int terminate_child(node*,int*,int*,void*,int* terminated_last_loop);
 
 void main_loop(parent_data,int,int);
 

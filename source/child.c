@@ -57,14 +57,17 @@ void child(child_data data,int shm_size){
             my_block->status=WAITING;
         }
         else if(my_block->status == TERMINATE){
-            printf("Child [%d|%d] terminated\n",data.time_created,data.id);
-
+            int time_exited;
+            time_exited= *(int*)my_block->line;
+            printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
+            
             //in line is current time
         }
         else if(my_block->status == FORCE_TERMINATE){
-            printf("Child [%d|%d] automatically terminated\n",data.time_created,data.id);
+            int time_exited;
+            time_exited= *(int*)my_block->line;
+            printf("Child [%d|%d] automatically terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
             //in line is current time
-            
         }
         else{
             printf("AVAILABLE:[%d] WAITING:[%d]LINEINBUFFER:[%d]TERMINATE:[%d]BUILDING:[%d]\n",AVAILABLE,WAITING,LINEINBUFFER,TERMINATE,BUILDING);
@@ -72,14 +75,15 @@ void child(child_data data,int shm_size){
             exit(-1);
         }
     }
+    pid_t* shm_loop_iter = (pid_t*)my_block->line;
+    *shm_loop_iter = data.pid;
     my_block->status=AVAILABLE;
 
     if (sem_close(semaphore) < 0)
         perror("sem_close(3) failed");
 
-    int time_exited;
-    time_exited= *(int*)segment;
+    
     close(shm_fd);
 
-    exit(2);
+    exit(data.id*data.time_created);
 }
