@@ -16,6 +16,8 @@ int my_open(char* filename){
     return fd;
 }
 
+
+//WRITE TO BUFFER
 int get_line(int fd,char* buffer){
     
     char c;

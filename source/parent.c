@@ -8,20 +8,58 @@
 //TEMP
 parent_data *p_data=NULL;
 
-void send_line(){
-    
+void send_line(parent_data* data,int sem_num){
+    static int j=0;
+
+
+    block* curr_block = (block*) (data->shm_segment + sizeof(int));
+    int i=0;
+    while (curr_block[i].status!=WAITING){   
+        i++;
+        if (i==sem_num && j++<5){
+            printf("All children are busy\n");
+            return;
+        }
+    }
+    printf("Sending line to %d\n",i);
+    get_line(data->line_fd,curr_block[i].line);
+
+    curr_block[i].status = LINEINBUFFER;
+    if (sem_post(p_data->array[i]) < 0) {
+        perror("sem_post(3) error parent");
+    }
+
+
 }
 
 void receive_exitcodes(int* running_children){
+
     //do the *runninchildren--
+    //change enum to something
+    //sempost to wake them up 
 
 }
 
-int terminate_child(node* node){
+int terminate_child(node* node,int* running_children,int* process_array,void* shm){
+
+    (*running_children)--;
+    int i=0;
+    while (process_array[i]!=node->id){
+        i++;
+    }
+    
+    
+    block* curr_block = (block*) (shm + sizeof(int));
+    curr_block[i].status=TERMINATE;
+    process_array[i]=0;
+    if (sem_post(p_data->array[i]) < 0) {
+        perror("sem_post(3) error parent");
+    }
+
     printf("Terminating child %d|%d\n",node->timestamp,node->id);
 }
 
-int spawn_child(node* node,void* shm,int shm_size){
+int spawn_child(node* node,void* shm,int shm_size,int* process_array){
     
     child_data child_data;
     child_data.id = node->id;
@@ -29,47 +67,29 @@ int spawn_child(node* node,void* shm,int shm_size){
     
     block *curr_block = (block*) (shm + sizeof(int));
     int i=0;
-    for (i = 0; curr_block[i].status!=AVAILABLE; i++)
-    {
-    }
+    for (i = 0; curr_block[i].status!=AVAILABLE; i++){}
 
     child_data.position=i;
-    printf("[%d|%d] Position %d Block:%p\n",child_data.time_created,child_data.id,i,&(curr_block[i]));
-    curr_block[i].status = UNAVAILABLE;
+    curr_block[i].status = BUILDING;
 
     
     int pid = fork();
     if (pid==-1){perror("bad fork");exit(-1);}
     else if (pid==0){
-        printf("\n\n\n\n\n");
-        sleep(3);
-        printf("Posting1\n");
-        if (sem_post(p_data->array[i]) < 0) {
-            perror("sem_post(3) error parent");
-        }
-        
-        sleep(3);
-        printf("Posting2\n");
-        if (sem_post(p_data->array[i]) < 0) {
-            perror("sem_post(3) error parent");
-        }
-        sleep(3);
-        printf("Posting3\n");
-        if (sem_post(p_data->array[i]) < 0) {
-            perror("sem_post(3) error parent");
-        }
-
+        printf("Spawn %d:%d\n",i,child_data.id);
+        process_array[i] = child_data.id;
     }
     else{
-        printf("Child starting\n");
-        sleep(1);
         child(child_data,shm_size);
     }
     
-    printf("Spawning child %d|%d\n",node->timestamp,node->id);
 }
 
 void main_loop(parent_data data, int sem_num,int shm_size){
+
+    int* process_array = malloc(sizeof(int)*sem_num);
+    for (int i = 0; i < sem_num; i++) process_array[i]=0;
+    
 
     void* segment = data.shm_segment;
     int line_fd = data.line_fd;
@@ -86,26 +106,22 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     T_map = ptr.T_mapaddr;
     S_map = ptr.S_mapaddr;
 
-    printf("Prints:\n");
-    if(S_map)
-    print_map(S_map);
-    printf("------\n");
-    if(T_map)
+    printf("Terminates:\n");
     print_map(T_map);
-    printf("------\n");
+    printf("Spawns:\n");
+    print_map(S_map);
 
     void* child_space_start =  segment + sizeof(int);
-
     while(loop_iter<105){
         loop_iter++;   
-        //printf("Loop:%d\n",loop_iter);
-        if( T_map  && T_map->curr_node )
-        check_timestamp_T(loop_iter,T_map); //check if children need termination and do so
-        if(S_map && S_map->curr_node)
-        check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment,shm_size);   //same for children spawn
-        send_line();
-        receive_exitcodes(&running_children);
         *shm_loop_iter = loop_iter;
+        printf("Loop:%d\n",loop_iter);
+        if( T_map  && T_map->curr_node)
+        check_timestamp_T(loop_iter,T_map,&running_children,process_array,segment); //check if children need termination and do so
+        if(S_map && S_map->curr_node)
+        check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment,shm_size,process_array);   //same for children spawn
+        //send_line(&data,sem_num);
+        //receive_exitcodes(&running_children);
     }
 
 
@@ -113,6 +129,15 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     print_map(T_map);
     printf("--%d--\n",running_children);
     print_map(S_map);
+    printf("========================\n");
+    for (int i = 0; i < sem_num; i++)
+    {
+        printf("[%d|%d]",i,process_array[i]);
+    }
+
+    sleep(1);
+    
+    
 }
 
 // FILE MUST END WITH NEW LINE
@@ -197,7 +222,7 @@ void semarr_innit(int num,sem_t*** array){
     for (int i = 0; i < num; i++)
     {
         sem_name[0]='A'+i;
-        arr[i] = sem_open(sem_name, O_CREAT , 0664, 1);
+        arr[i] = sem_open(sem_name, O_CREAT | O_EXCL, 0777, 0);
         if (arr[i] == SEM_FAILED) {
             perror("sem_open(3) error");
             exit(-1);
@@ -222,7 +247,6 @@ void* shm_innit(int num){
     }
     void *segment = mmap(NULL, sizeof(char)*shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     block *curr_block = (block*) (segment + sizeof(int));
-    printf("inner is %p\n",curr_block);
 
     for (size_t i = 0; i < num; i++)
     {
@@ -230,7 +254,6 @@ void* shm_innit(int num){
     }
     
 
-    printf("Size:%d\n",shm_size);
     if (segment == MAP_FAILED){
         perror("mmap fail");
         exit(-1);

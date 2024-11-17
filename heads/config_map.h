@@ -27,9 +27,9 @@ typedef struct {
 
 config_map* cmap_init(int, int );
 
-int check_timestamp_T(int,config_map*);
+int check_timestamp_T(int,config_map*,int*,int*,void*);
 
-int check_timestamp_S(int,config_map*,int*,int,void*,int);
+int check_timestamp_S(int,config_map*,int*,int,void*,int,int*);
 
 void add_node(config_map*,int,int);
 

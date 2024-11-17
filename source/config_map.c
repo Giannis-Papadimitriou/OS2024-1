@@ -1,28 +1,28 @@
 #include "../heads/config_map.h"
 #include "../heads/parent.h"
 
-int check_timestamp_T(int timestamp,config_map* T_map){
+int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int* process_array,void* shm){
     node* T_curr=T_map->curr_node;
     
     if (!T_curr){
-        printf("Bad\n");
+        printf("Bad\n\n\n\n\n\n\n\n\n");
     }
     
     
     if (T_curr->timestamp == timestamp){
         while (T_curr){
-            terminate_child(T_curr); 
+            terminate_child(T_curr,running_children,process_array,shm); 
             T_curr=T_curr->next_node;
         }
         T_map->curr_node = T_map->curr_node->next_timestamp_node;
     }
 }
 
-int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num,void* shm,int shm_size){
+int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num,void* shm,int shm_size,int* process_array){
     node* S_curr=S_map->curr_node;
     if (S_curr->timestamp == timestamp){
         while (S_curr && *running_children < sem_num){
-            spawn_child(S_curr,shm,shm_size); 
+            spawn_child(S_curr,shm,shm_size,process_array); 
             (*running_children)++;
             S_curr=S_curr->next_node;
         }
