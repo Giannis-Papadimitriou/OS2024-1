@@ -3,12 +3,7 @@
 
 int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int* process_array,void* shm){
     node* T_curr=T_map->curr_node;
-    
-    if (!T_curr){
-        printf("Bad\n\n\n\n\n\n\n\n\n");
-    }
-    
-    
+
     if (T_curr->timestamp == timestamp){
         while (T_curr){
             terminate_child(T_curr,running_children,process_array,shm); 

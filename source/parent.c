@@ -9,14 +9,15 @@
 parent_data *p_data=NULL;
 
 void send_line(parent_data* data,int sem_num){
-
+    static int j=0;
 
     block* curr_block = (block*) (data->shm_segment + sizeof(int));
     int i=0;
     while (curr_block[i].status!=WAITING){   
+        printf("|Arr[%d]:%d|",i,curr_block[i].status);
         i++;
-        if (i==sem_num){
-            printf("All children are busy\n");
+        if (i==sem_num ){
+            if (j++<5) printf("All children are busy\n");
             return;
         }
     }
@@ -120,21 +121,22 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     print_map(S_map);
 
     void* child_space_start =  segment + sizeof(int);
-    while(loop_iter<105){
+    while(loop_iter<10){
         loop_iter++;   
         *shm_loop_iter = loop_iter;
         if( T_map  && T_map->curr_node)
         check_timestamp_T(loop_iter,T_map,&running_children,process_array,segment); //check if children need termination and do so
         if(S_map && S_map->curr_node)
         check_timestamp_S(loop_iter,S_map,&running_children,sem_num,segment,shm_size,process_array);   //same for children spawn
-        //send_line(&data,sem_num);
+        if (running_children!=0)
+        send_line(&data,sem_num);
         //receive_exitcodes(&running_children);
     }
     
     
     
-
-
+    //waiting for exit codes should fix this
+    sleep(3);
     block* curr_block = (block*) (segment + sizeof(int));
     for (int i = 0; i < sem_num; i++){
         if (process_array[i]!=0){

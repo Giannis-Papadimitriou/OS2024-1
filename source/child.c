@@ -38,30 +38,32 @@ void child(child_data data,int shm_size){
     block *process_segment = (block*) (segment + sizeof(int));
     //loop until termination message
     block *my_block = &(process_segment[data.position]);
-    printf("Child [%d|%d}\n",data.time_created,data.id);
+    printf("Child [%d|%d]\n",data.time_created,data.id);
     my_block->status = WAITING;
     while (my_block->status == WAITING){
         //wait for termination or new line
-        printf("Child [%d|%d] waiting\n",data.time_created,data.id);
+        //printf("Child [%d|%d] waiting\n",data.time_created,data.id);
         if (sem_wait(semaphore) < 0) {
             perror("sem_wait(3) failed on child");
         }
         printf("Child [%d|%d] passed\n",data.time_created,data.id);
-
         if (my_block->status==LINEINBUFFER){
             char line[LINE_LIMIT];
             //assume null terminated
             strcpy(line,my_block->line);
             messages_received++;
             //Print to standard out
-            printf("%s\n",line);
+            printf("Child %d(%d):\"%s\"",data.id,messages_received,line);
             my_block->status=WAITING;
         }
         else if(my_block->status == TERMINATE){
             printf("Child [%d|%d] terminated\n",data.time_created,data.id);
+
+            //in line is current time
         }
         else if(my_block->status == FORCE_TERMINATE){
-            printf("Child [%d|%d] left behind\n",data.time_created,data.id);
+            printf("Child [%d|%d] automatically terminated\n",data.time_created,data.id);
+            //in line is current time
             
         }
         else{
@@ -72,17 +74,12 @@ void child(child_data data,int shm_size){
     }
     my_block->status=AVAILABLE;
 
-    
-
     if (sem_close(semaphore) < 0)
         perror("sem_close(3) failed");
 
-
-
     int time_exited;
     time_exited= *(int*)segment;
-    printf("Child read memory %d\n",time_exited);
-
     close(shm_fd);
+
     exit(2);
 }

@@ -8,7 +8,7 @@ fi
 rm /dev/shm/sem.*; rm /dev/shm/*.c
 
 textfile="files/textfile.txt"
-num=20
+num=5
 ./main $textfile $num
 
 #make clean
