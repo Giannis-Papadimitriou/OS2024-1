@@ -20,6 +20,7 @@ typedef enum block_status{
     WAITING,
     LINEINBUFFER,
     TERMINATE,
+    FORCE_TERMINATE,
     BUILDING,
 }block_status;
 

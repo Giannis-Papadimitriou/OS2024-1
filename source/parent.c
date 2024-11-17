@@ -9,14 +9,13 @@
 parent_data *p_data=NULL;
 
 void send_line(parent_data* data,int sem_num){
-    static int j=0;
 
 
     block* curr_block = (block*) (data->shm_segment + sizeof(int));
     int i=0;
     while (curr_block[i].status!=WAITING){   
         i++;
-        if (i==sem_num && j++<5){
+        if (i==sem_num){
             printf("All children are busy\n");
             return;
         }
@@ -41,12 +40,21 @@ void receive_exitcodes(int* running_children){
 }
 
 int terminate_child(node* node,int* running_children,int* process_array,void* shm){
+    int i=0,children_checked=0;
 
-    (*running_children)--;
-    int i=0;
-    while (process_array[i]!=node->id){
+    while (process_array[i]!=node->id && children_checked < *running_children){
         i++;
+        if (process_array[i]!=0){
+            children_checked++;
+        }
     }
+    if (children_checked==*running_children)
+    {
+        printf("Issued termination command to nonexistent child\n");
+        return -1;
+    }
+    
+    (*running_children)--;
     
     
     block* curr_block = (block*) (shm + sizeof(int));
@@ -115,7 +123,6 @@ void main_loop(parent_data data, int sem_num,int shm_size){
     while(loop_iter<105){
         loop_iter++;   
         *shm_loop_iter = loop_iter;
-        printf("Loop:%d\n",loop_iter);
         if( T_map  && T_map->curr_node)
         check_timestamp_T(loop_iter,T_map,&running_children,process_array,segment); //check if children need termination and do so
         if(S_map && S_map->curr_node)
@@ -123,6 +130,22 @@ void main_loop(parent_data data, int sem_num,int shm_size){
         //send_line(&data,sem_num);
         //receive_exitcodes(&running_children);
     }
+    
+    
+    
+
+
+    block* curr_block = (block*) (segment + sizeof(int));
+    for (int i = 0; i < sem_num; i++){
+        if (process_array[i]!=0){
+            curr_block[i].status=FORCE_TERMINATE;
+            process_array[i]=0;
+            if (sem_post(p_data->array[i]) < 0) {
+                perror("sem_post(3) error parent");
+            }
+        }
+    }
+    
 
 
     printf("======\n======\n======\n======\n");
@@ -135,7 +158,6 @@ void main_loop(parent_data data, int sem_num,int shm_size){
         printf("[%d|%d]",i,process_array[i]);
     }
 
-    sleep(1);
     
     
 }

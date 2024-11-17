@@ -57,18 +57,20 @@ void child(child_data data,int shm_size){
             printf("%s\n",line);
             my_block->status=WAITING;
         }
-        else if(my_block->status == TERMINATE){}
+        else if(my_block->status == TERMINATE){
+            printf("Child [%d|%d] terminated\n",data.time_created,data.id);
+        }
+        else if(my_block->status == FORCE_TERMINATE){
+            printf("Child [%d|%d] left behind\n",data.time_created,data.id);
+            
+        }
         else{
             printf("AVAILABLE:[%d] WAITING:[%d]LINEINBUFFER:[%d]TERMINATE:[%d]BUILDING:[%d]\n",AVAILABLE,WAITING,LINEINBUFFER,TERMINATE,BUILDING);
             printf("UNEXPECTED TYPE:[%d]\n",my_block->status);
             exit(-1);
         }
     }
-    
-    if (my_block->status==TERMINATE){
-        my_block->status=AVAILABLE;
-        printf("Child [%d|%d] terminated\n",data.time_created,data.id);
-    }
+    my_block->status=AVAILABLE;
 
     
 
