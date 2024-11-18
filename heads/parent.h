@@ -31,7 +31,7 @@ cmap_addr timestamp_table_innit(int,config_map*,config_map*);
 
 
 typedef struct {
-    sem_t** array;
+    sem_t** sem_array;
     int cf_fd;
     int line_fd;
     void* shm_segment;

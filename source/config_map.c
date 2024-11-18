@@ -3,7 +3,6 @@
 
 int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int* process_array,void* shm,int* terminated_last_loop){
     node* T_curr=T_map->curr_node;
-
     if (T_curr->timestamp == timestamp){
         while (T_curr){
             terminate_child(T_curr,running_children,process_array,shm,terminated_last_loop); 
@@ -15,8 +14,13 @@ int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int*
 
 int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num,void* shm,int shm_size,int* process_array){
     node* S_curr=S_map->curr_node;
+    // printf("Loop:%d Next spawn:%d\n",timestamp,S_curr->timestamp);
+    static int f=0;
     if (S_curr->timestamp == timestamp){
+        int l=0;
         while (S_curr && *running_children < sem_num){
+            // printf("S_curr(%d/%d)",f++,getpid());
+            // printf(":[%d,%d]",S_curr->id,S_curr->timestamp);
             spawn_child(S_curr,shm,shm_size,process_array); 
             (*running_children)++;
             S_curr=S_curr->next_node;
@@ -24,7 +28,7 @@ int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int 
 
         if (S_curr && *running_children == sem_num)
         {
-            printf("Too many processes\n");
+            printf("\n\n\nToo many processes\n");
             exit(0);
         }
         S_map->curr_node = S_map->curr_node->next_timestamp_node;
@@ -96,12 +100,14 @@ void print_map(config_map* cmap){
     while (curr){
         printf("Timestamp:%d/",curr->timestamp);
         node* curr_inner=curr;
+        int i=0;
         while (curr_inner)
         {
+            i++;
             printf("%d-",curr_inner->id);
             curr_inner=curr_inner->next_node;
         }
-        printf("\n");
+        printf("[%d]\n",i);
         curr=curr->next_timestamp_node;
     }
 }
