@@ -5,7 +5,10 @@ int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int*
     node* T_curr=T_map->curr_node;
     if (T_curr->timestamp == timestamp){
         while (T_curr){
-            terminate_child(T_curr,running_children,process_array,shm,terminated_last_loop); 
+            int t_status = terminate_child(T_curr,running_children,process_array,shm,terminated_last_loop);
+            if (t_status==-2 || t_status==-3){
+                add_node(T_map,timestamp+1,T_curr->id);
+            }
             T_curr=T_curr->next_node;
         }
         T_map->curr_node = T_map->curr_node->next_timestamp_node;

@@ -61,42 +61,27 @@ void child(child_data data,int shm_size){
 
 
     #ifdef RED
-    if (!(data.id==3 || data.id==7))
-    {
         rdect(data);
-    }
-    else{
-        if(data.id==7) usleep(1000);
-        printf("----------------------------------------\n");
-        for (int i = 0; i < 13; i++)
-        {
-        if(i==0)
-                printf("%d Range:[%p-%p]\n",data.id,segment,segment+sizeof(int)+13*sizeof(block)+sizeof(int));
-                block *process_segment = (block*) (segment + sizeof(int));
-                block *this_block = &(process_segment[i]);
-                
-                printf("Child %d:[%p|%p]:\n",i==data.position,this_block->line,&(this_block->status));//undo
-        }
-    }
+    
     #endif  
 
     block *process_segment = (block*) (segment + sizeof(int));
     //loop until termination message
     block *my_block = &(process_segment[data.position]);
     int real_enter=*(int*)segment;
-    printf("Child [%d-%d|%d] [%p|%p|%p]:\n",data.time_created,real_enter,data.id,&my_block,&my_block->line,&(my_block->status));//undo
+    // printf("Child [%d|%d] [%p|%p|%p]:\n",data.time_created,data.id,&my_block,&my_block->line,&(my_block->status));//undo
     my_block->status = WAITING;
-    block_status mystatus = WAITING;
+    block_status mystatus = my_block->status;
     while (mystatus == WAITING){
         //wait for termination or new line
         //printf("Child [%d|%d] waiting\n",data.time_created,data.id);
         // printf("Child [%d|%d] waiting:%d\n",data.time_created,data.id,mystatus);//undo
         if (sem_wait(semaphore) < 0) {
-            // perror("sem_wait(3) failed on child");
+            perror("sem_wait(3) failed on child");
         }
 
         mystatus =my_block->status;
-        usleep(1000);
+        // usleep(1000);
         // printf("Child [%d|%d] passed:%d\n",data.time_created,data.id,mystatus);//undo
         if (mystatus==LINEINBUFFER){
             char line[LINE_LIMIT];
@@ -105,17 +90,15 @@ void child(child_data data,int shm_size){
             messages_received++;
             //Print to standard out
             // printf("Child %d(%d):Bottom Text\n",data.id,messages_received);
-            printf("Child %d(%d):%s",data.id,messages_received,line);
+            printf("Child %d(%d):<%s>",data.id,messages_received,line);
             my_block->status=WAITING;
             mystatus=WAITING;
         }
         else if(mystatus == TERMINATE){
             int time_exited;
             time_exited= *(int*)my_block->line;
-            pid_t mypid = getpid();
-            memcpy(my_block->line,&mypid,sizeof(pid_t));
-            printf(" %d just wrote: %d though it should be  %d\n",data.id,getpid(),*(pid_t*) my_block->line);
-            // printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
+            
+            printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
             
             //in line is current time
         }
@@ -131,13 +114,21 @@ void child(child_data data,int shm_size){
             exit(-1);
         }
     }
+    pid_t mypid = getpid();
+    memcpy(my_block->line,&mypid,sizeof(pid_t));
+    // printf(" %d just wrote: %d though it should be  %d\n",data.id,getpid(),*(pid_t*) my_block->line);
     // printf("Child [%d|%d] exiting loop:%d\n",data.time_created,data.id,mystatus);
     // pid_t* shm_loop_iter = (pid_t*)my_block->line;
     // *shm_loop_iter = data.pid;
     pid_t tst = *(pid_t*) my_block->line;
-    printf("Just checking %d|%d: %d|%p\n",data.id,getpid(),tst,(pid_t*) my_block->line);
-    printf("Setting %d: %p\n",data.id,&(my_block->status));
-    my_block->status=EXITED;//<-EXITED
+    // printf("Just checking %d|%d: %d|%p\n",data.id,getpid(),tst,(pid_t*) my_block->line);
+    // printf("Setting %d: %p\n",data.id,&(my_block->status));
+    if (my_block->status==FORCE_TERMINATE && sem_post(semaphore) < 0)
+    {
+        perror("sem_post(3) error parent");
+    }
+    my_block->status=EXITED;
+
 
 
     if (sem_close(semaphore) < 0){
@@ -147,6 +138,6 @@ void child(child_data data,int shm_size){
     
     close(shm_fd);
 
-    usleep(1000000);
+    // usleep(1000);
     exit(data.id);
 }

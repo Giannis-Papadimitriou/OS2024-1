@@ -28,7 +28,6 @@ todo:harder tests
 
 
 todo:make terminates go through
-todo:implement catching exit codes
 todo: free mallocs
 todo: check shm/semas
 todo: check shm/semas fds
