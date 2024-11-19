@@ -24,9 +24,15 @@ parent enters main mode:
         if T was called last loop receive exit codes
 
 
+todo:harder tests
+
+
+todo:make terminates go through
+todo:implement catching exit codes
 todo: free mallocs
 todo: check shm/semas
 todo: check shm/semas fds
+
 todo: major cleanup
 todo: increase semaphore limit
 todo: move some function to other files
@@ -36,14 +42,14 @@ todo: move some function to other files
 44-6-T
 834-4-S
 5-7-S
-32-835-S
-32-732-S
-32-88882-S
+32-35-S
+32-32-S
+32-42-S
 32-1-S
 32-12-S
 8-3-T
 40-7-T
-43-134-T
+43-34-T
 5-9-S
 5-2-S
 
@@ -53,3 +59,13 @@ todo: move some function to other files
 7-3-T
 7-6-S
 8-9-S
+
+Terminates:
+Timestamp:8/3-[1]
+Timestamp:40/7-[1]
+Timestamp:43/34-[1]
+Timestamp:44/6-[1]
+Spawns:
+Timestamp:5/3-7-9-2-[4]
+Timestamp:32/6-35-32-42-1-12-[6]
+Timestamp:834/4-[1]

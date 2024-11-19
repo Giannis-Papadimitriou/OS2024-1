@@ -1,0 +1,9 @@
+logs/
+
+main
+
+objs/
+
+.vscode/
+
+tally.sh

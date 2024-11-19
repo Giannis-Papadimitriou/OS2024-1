@@ -4,6 +4,7 @@
         "parent.h": "c",
         "util.h": "c",
         "string.h": "c",
-        "config_map.h": "c"
+        "config_map.h": "c",
+        "typeinfo": "c"
     }
 }

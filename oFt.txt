@@ -1,4 +1,0 @@
-Child [4|5]
-Child 5(1):line for testing 5
-Child 5(2):line for testing 6
-Child [4|5] terminated after 5 loops and reading 2 messages

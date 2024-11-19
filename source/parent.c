@@ -10,15 +10,19 @@ parent_data *p_data=NULL;
 
 void send_line(parent_data* data,int sem_num){
 
+    return;
+
     block* curr_block = (block*) (data->shm_segment + sizeof(int));
-    int i=0;
-    printf("Block status:");
+    printf("[Block]:(stats,process)|");
     for (int l = 0; l < data->sem_num; l++)
     {
-        printf("|Stat|Arr[%d]:(%d,%d)|",l,curr_block[l].status,data->process_array[l]);
+        printf("[%d]:(%d,%d)|",l,curr_block[l].status,data->process_array[l]);
 
     }
     
+
+    
+    int i=0;
     while (curr_block[i].status!=WAITING){   
         i++;
         if (i==sem_num ){
@@ -26,10 +30,11 @@ void send_line(parent_data* data,int sem_num){
             return;
         }
     }
+    if (get_line(data->line_fd,curr_block[i].line)==1) return;
     printf("Sending line to %d:%d\n",i,data->process_array[i]);
-    get_line(data->line_fd,curr_block[i].line);
 
     curr_block[i].status = LINEINBUFFER;
+
     if (sem_post(p_data->sem_array[i]) < 0) {
         perror("sem_post(3) error parent");
     }
@@ -63,17 +68,18 @@ int terminate_child(node* node,int* running_children,int* process_array,void* sh
         }
         i++;
     }
-
-    for (int j = 0; j < p_data->sem_num ; j++)
+    int j=0;
+    printf("|j,process_array[j]|");
+    for (j = 0; j < p_data->sem_num ; j++)
     {
-        printf("process_array[%d]:%d|",j,process_array[j]);
+        printf("%d,%d|",j,process_array[j]);
     }
     
 
     block* curr_block = (block*) (shm + sizeof(int));
     if (i==p_data->sem_num || process_array[i]!=node->id)
     {
-        printf("Issued termination command to nonexistent child[%d|%d]\n",children_checked,*running_children);
+        printf("Issued termination command to nonexistent child[%d|%d|%d]\n",node->id,children_checked,*running_children);
         return -1;
     }
     else if (curr_block[i].status==LINEINBUFFER){
@@ -90,7 +96,7 @@ int terminate_child(node* node,int* running_children,int* process_array,void* sh
     
     memcpy((curr_block[i].line),shm,sizeof(int));   //write loop for child to read 
     curr_block[i].status=TERMINATE;
-    process_array[i]=0; //<---todo
+    // process_array[i]=0; //<---todo
     if (sem_post(p_data->sem_array[i]) < 0) {
         perror("sem_post(3) error parent");
     }
@@ -107,14 +113,15 @@ int spawn_child(node* node,void* shm,int shm_size,int* process_array){
     block *curr_block = (block*) (shm + sizeof(int));
     static int z=0;
     int i=0;
-    printf("%d|%d Looking for next child spot/%d:",getpid(),z++,p_data->sem_num);
-    for (int l = 0; l < p_data->sem_num; l++)
-    {
-        printf("|Stat|Arr[%d]:(%d,%d)|",l,curr_block[l].status,p_data->process_array[l]);
+    // printf("%d Looking for next child spot/%d:",z++,p_data->sem_num);
+    // printf("|[i]:(status,process_array)|");
+    // for (int l = 0; l < p_data->sem_num; l++)
+    // {
+    //     printf("|[%d]:(%d,%d)|",l,curr_block[l].status,p_data->process_array[l]);
 
-    }
+    // }
     
-    printf("This guy..\n");
+    // printf("This guy..\n");
     // usleep(500000);
     
     while (curr_block[i].status!=AVAILABLE)
@@ -141,7 +148,7 @@ int spawn_child(node* node,void* shm,int shm_size,int* process_array){
     else{
         static int times=0;
         process_array[i] = child_data.id;
-        printf("I am parent %d:{%d/2}\n",getpid(),++times);
+        // printf("I am parent %d:{%d}\n",++times);
     }
     
 }
@@ -179,32 +186,51 @@ void main_loop(parent_data data, int sem_num,int shm_size){
 
 
     block* curr_block = (block*) (segment + sizeof(int));
-    while(loop_iter<10){
-        sleep(1);
-        if(*shm_loop_iter==loop_iter)
-        printf("Loop:%d<-------------\n",*shm_loop_iter);else printf("\n\n\n\n\n?????????????\n\n\n\n\n");
+    while(loop_iter<50){
+        usleep(100000);
+        if(loop_iter<10 || loop_iter>29){
+
+        for (int z = 0; z < 3; z++)
+        {
+            block *my_block = &(curr_block[z]);
+            printf("Block %d:[%d]:",z,*(pid_t*)my_block->line);//undo    
+        }
+        printf("\n");
+        
+        
+        printf("Loop:%d<-------------\n",*shm_loop_iter);
+        }
         
 
-        // for (int i = 0; i < sem_num; i++){
-
-        //     if (curr_block[i].status==EXITED){
-        //         printf("\n\nFound one:%d\n\n",i);
-        //         int status;
-        //         pid_t exited_pid=*((pid_t*)(curr_block->line));  //Don't trust this blindly
-        //         waitpid(exited_pid, &status, 0);  // Wait for the child to terminate
-        //         if (WIFEXITED(status)) {
-        //             int exit_code = WEXITSTATUS(status);
-        //             printf("Child exited with code: %d\n", exit_code);
-        //         }
-        //         curr_block[i].status=AVAILABLE;
-        //     }   
-        // }
+        for (int i = 0; i < sem_num; i++){
+            if (loop_iter==48)
+            {
+                if(i==0)
+                printf("Range:[%p-%p]\n",segment,segment+sizeof(int)+sem_num*sizeof(block)+sizeof(int));
+                block *process_segment = (block*) (segment + sizeof(int));
+                block *my_block = &(curr_block[i]);
+                
+                printf("Child %d:[%p|%p]:\n",process_array[i],&(my_block->line),&(my_block->status));//undo
+            }
+            
+            if (curr_block[i].status==EXITED){
+                int status;
+                pid_t exited_pid=*(pid_t*)curr_block[i].line;
+                printf("Found exited:[%d|%d,%d|%p]\n\n",i,process_array[i],exited_pid,&(curr_block[i].status));
+                process_array[i]=0;
+                waitpid(exited_pid, &status, 0);  // Wait for the child to terminate
+                if (WIFEXITED(status)) {
+                    int exit_code = WEXITSTATUS(status);
+                    printf("Child [%d] exited with code: %d\n", exited_pid ,exit_code);
+                }
+                curr_block[i].status=AVAILABLE;
+            }   
+        }
         
 
         loop_iter++;   
         *shm_loop_iter = loop_iter;
         if( T_map && T_map->curr_node){
-
         check_timestamp_T(loop_iter,T_map,&running_children,process_array,segment,terminated_last_loop); //check if children need termination and do so
         }
         if(S_map && S_map->curr_node){

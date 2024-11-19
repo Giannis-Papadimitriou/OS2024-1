@@ -1,6 +1,0 @@
-Child [2|3]
-Child 3(1):line for testing 1
-Child 3(2):line for testing 2
-Child 3(3):line for testing 3
-Child 3(4):line for testing 4
-Child [2|3] terminated after 5 loops and reading 4 messages

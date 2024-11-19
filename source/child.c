@@ -15,14 +15,15 @@ sem_t* child_sem_open(int position){
     return ret;
 }
 
-#define REDd
+#define RED
 
 
 #ifdef RED
     void rdect(child_data data){
-    char name[8] = "out.txt";
-        name[1]=data.id+'A';
-    int fd = open(name, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    char filename[50];
+    int num = data.id;
+    snprintf(filename, sizeof(filename), "./logs/%d.txt", num);
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd < 0) {
             perror("open");
             exit(EXIT_FAILURE);
@@ -39,9 +40,6 @@ void child(child_data data,int shm_size){
     // printf("%d created\n",getpid());//undo
 
 
-    #ifdef RED
-    rdect(data);
-    #endif  
 
     int messages_received=0,init_time = data.time_created;
     sem_t *semaphore = child_sem_open(data.position);    
@@ -60,10 +58,33 @@ void child(child_data data,int shm_size){
         exit(-1);
     }
 
+
+
+    #ifdef RED
+    if (!(data.id==3 || data.id==7))
+    {
+        rdect(data);
+    }
+    else{
+        if(data.id==7) usleep(1000);
+        printf("----------------------------------------\n");
+        for (int i = 0; i < 13; i++)
+        {
+        if(i==0)
+                printf("%d Range:[%p-%p]\n",data.id,segment,segment+sizeof(int)+13*sizeof(block)+sizeof(int));
+                block *process_segment = (block*) (segment + sizeof(int));
+                block *this_block = &(process_segment[i]);
+                
+                printf("Child %d:[%p|%p]:\n",i==data.position,this_block->line,&(this_block->status));//undo
+        }
+    }
+    #endif  
+
     block *process_segment = (block*) (segment + sizeof(int));
     //loop until termination message
     block *my_block = &(process_segment[data.position]);
-    printf("Child [%d|%d]\n",data.time_created,data.id);//undo
+    int real_enter=*(int*)segment;
+    printf("Child [%d-%d|%d] [%p|%p|%p]:\n",data.time_created,real_enter,data.id,&my_block,&my_block->line,&(my_block->status));//undo
     my_block->status = WAITING;
     block_status mystatus = WAITING;
     while (mystatus == WAITING){
@@ -73,7 +94,9 @@ void child(child_data data,int shm_size){
         if (sem_wait(semaphore) < 0) {
             // perror("sem_wait(3) failed on child");
         }
+
         mystatus =my_block->status;
+        usleep(1000);
         // printf("Child [%d|%d] passed:%d\n",data.time_created,data.id,mystatus);//undo
         if (mystatus==LINEINBUFFER){
             char line[LINE_LIMIT];
@@ -89,7 +112,10 @@ void child(child_data data,int shm_size){
         else if(mystatus == TERMINATE){
             int time_exited;
             time_exited= *(int*)my_block->line;
-            printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
+            pid_t mypid = getpid();
+            memcpy(my_block->line,&mypid,sizeof(pid_t));
+            printf(" %d just wrote: %d though it should be  %d\n",data.id,getpid(),*(pid_t*) my_block->line);
+            // printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
             
             //in line is current time
         }
@@ -106,15 +132,21 @@ void child(child_data data,int shm_size){
         }
     }
     // printf("Child [%d|%d] exiting loop:%d\n",data.time_created,data.id,mystatus);
-    pid_t* shm_loop_iter = (pid_t*)my_block->line;
+    // pid_t* shm_loop_iter = (pid_t*)my_block->line;
     // *shm_loop_iter = data.pid;
-    my_block->status=AVAILABLE;//<-EXITED
+    pid_t tst = *(pid_t*) my_block->line;
+    printf("Just checking %d|%d: %d|%p\n",data.id,getpid(),tst,(pid_t*) my_block->line);
+    printf("Setting %d: %p\n",data.id,&(my_block->status));
+    my_block->status=EXITED;//<-EXITED
 
-    if (sem_close(semaphore) < 0)
-        // perror("sem_close(3) failed");
+
+    if (sem_close(semaphore) < 0){
+        perror("sem_close(3) failed");
+    }
 
     
     close(shm_fd);
 
-    exit(data.id*data.time_created);
+    usleep(1000000);
+    exit(data.id);
 }
