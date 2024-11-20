@@ -25,15 +25,16 @@ parent enters main mode:
 
 
 todo:harder tests
+todo: increase semaphore limit
 
 
 todo:make terminates go through
 todo: free mallocs
 todo: check shm/semas
 todo: check shm/semas fds
+todo: random lines instead of 1 at a time
 
 todo: major cleanup
-todo: increase semaphore limit
 todo: move some function to other files
 
 5-3-S

@@ -5,6 +5,8 @@
         "util.h": "c",
         "string.h": "c",
         "config_map.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "cstdlib": "c",
+        "unistd.h": "c"
     }
 }

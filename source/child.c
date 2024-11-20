@@ -3,19 +3,20 @@
 #include "../heads/util.h"
 
 
-sem_t* child_sem_open(int position){
+sem_t* child_sem_open(int position,char* name_template){
     sem_t* ret;
-    char sem_name[14] = SEM_NAME_TEMPLATE;
+    char sem_name[TEMPLATE_NAMESIZE];
+    strcpy(sem_name,name_template);
     sem_name[0]='A'+position;
     ret = sem_open(sem_name, O_RDWR);
     if (ret == SEM_FAILED) {
-        // perror("sem_open(3) failed");
+        perror("child sem_open(3) failed");
         exit(EXIT_FAILURE);
     }
     return ret;
 }
 
-#define RED
+#define RE
 
 
 #ifdef RED
@@ -42,7 +43,8 @@ void child(child_data data,int shm_size){
 
 
     int messages_received=0,init_time = data.time_created;
-    sem_t *semaphore = child_sem_open(data.position);    
+    sem_t *loop_semaphore = child_sem_open(data.position,LOOP_SEM_NAME_TEMPLATE);    
+    sem_t *close_semaphore = child_sem_open(data.position,CLOSE_SEM_NAME_TEMPLATE);    
 
     void *segment;
     int shm_fd = shm_open(SHM_PATH, O_RDWR, 0);
@@ -61,7 +63,12 @@ void child(child_data data,int shm_size){
 
 
     #ifdef RED
+    if (data.id!=35)
+    {
+        /* code */
+    
         rdect(data);
+    }
     
     #endif  
 
@@ -70,17 +77,19 @@ void child(child_data data,int shm_size){
     block *my_block = &(process_segment[data.position]);
     int real_enter=*(int*)segment;
     // printf("Child [%d|%d] [%p|%p|%p]:\n",data.time_created,data.id,&my_block,&my_block->line,&(my_block->status));//undo
+    if(my_block->status==BUILDING)
     my_block->status = WAITING;
     block_status mystatus = my_block->status;
     while (mystatus == WAITING){
         //wait for termination or new line
         //printf("Child [%d|%d] waiting\n",data.time_created,data.id);
         // printf("Child [%d|%d] waiting:%d\n",data.time_created,data.id,mystatus);//undo
-        if (sem_wait(semaphore) < 0) {
+        printf("Waiting: %d:[%d]\n",data.id,my_block->status);
+        if (sem_wait(loop_semaphore) < 0) {
             perror("sem_wait(3) failed on child");
         }
-
         mystatus =my_block->status;
+        printf("No longer: %d:[%d]\n",data.id,my_block->status);
         // usleep(1000);
         // printf("Child [%d|%d] passed:%d\n",data.time_created,data.id,mystatus);//undo
         if (mystatus==LINEINBUFFER){
@@ -110,7 +119,7 @@ void child(child_data data,int shm_size){
         }
         else{
             printf("AVAILABLE:[%d] WAITING:[%d]LINEINBUFFER:[%d]TERMINATE:[%d]FORCE_TERMINATE[%d]BUILDING:[%d]EXITED[%d]\n",AVAILABLE,WAITING,LINEINBUFFER,TERMINATE,FORCE_TERMINATE,BUILDING,EXITED);
-            printf("UNEXPECTED TYPE:[%d]\n",mystatus);
+            printf("UNEXPECTED TYPE %d:[%d]\n",data.id,mystatus);
             exit(-1);
         }
     }
@@ -123,7 +132,7 @@ void child(child_data data,int shm_size){
     pid_t tst = *(pid_t*) my_block->line;
     // printf("Just checking %d|%d: %d|%p\n",data.id,getpid(),tst,(pid_t*) my_block->line);
     // printf("Setting %d: %p\n",data.id,&(my_block->status));
-    if (my_block->status==FORCE_TERMINATE && sem_post(semaphore) < 0)
+    if (sem_post(close_semaphore) < 0)
     {
         perror("sem_post(3) error parent");
     }
@@ -131,13 +140,19 @@ void child(child_data data,int shm_size){
 
 
 
-    if (sem_close(semaphore) < 0){
+    if (sem_close(loop_semaphore) < 0){
+        perror("sem_close(3) failed");
+    }
+    if (sem_close(close_semaphore) < 0){
         perror("sem_close(3) failed");
     }
 
     
     close(shm_fd);
-
-    // usleep(1000);
+    // if (data.id==35){
+    //     printf("Slowpoke sleeping\n");
+    //     sleep(4);
+    //     printf("Slowpoke Waking\n");
+    // } 
     exit(data.id);
 }

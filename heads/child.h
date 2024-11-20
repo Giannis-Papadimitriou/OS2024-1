@@ -12,7 +12,7 @@ typedef struct {
     int position;//index to block in shared memory
 }child_data;
 
-sem_t* child_sem_open(int);
+sem_t* child_sem_open(int,char*);
 
 void child(child_data,int);
 
