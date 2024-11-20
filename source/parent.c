@@ -10,13 +10,12 @@ parent_data *p_data = NULL;
 void send_line(parent_data *data, int sem_num)
 {
 
-    return;
 
     block *curr_block = (block *)(data->shm_segment + sizeof(int));
-    printf("[Block]:(stats,process)|");
+    // printf("[Block]:(stats,process)|");
     for (int l = 0; l < data->sem_num; l++)
     {
-        printf("[%d]:(%d,%d)|", l, curr_block[l].status, data->process_array[l]);
+        // printf("[%d]:(%d,%d)|", l, curr_block[l].status, data->process_array[l]);
     }
 
     int i = 0;
@@ -25,13 +24,13 @@ void send_line(parent_data *data, int sem_num)
         i++;
         if (i == sem_num)
         {
-            printf("All children are busy\n");
+            // printf("All children are busy\n");
             return;
         }
     }
     if (get_line(data->line_fd, curr_block[i].line) == 1)
         return;
-    printf("Sending line to %d:%d\n", i, data->process_array[i]);
+    // printf("Sending line to %d:%d\n", i, data->process_array[i]);
 
     curr_block[i].status = LINEINBUFFER;
 
@@ -47,7 +46,7 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
 {
     int i = 0, children_checked = 0;
 
-    printf("Checking if should terminate %d\n", node->id);
+    // printf("Checking if should terminate %d\n", node->id);
     while (i < p_data->sem_num && process_array[i] != node->id && children_checked < *running_children)
     {
         if (process_array[i] != 0)
@@ -71,12 +70,12 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
     }
     else if (curr_block[i].status == LINEINBUFFER)
     {
-        printf("Can't terminate child currently reading from shared memory\n");
+        // printf("Can't terminate child currently reading from shared memory\n");
         return -2;
     }
     else if (curr_block[i].status == BUILDING)
     {
-        printf("Can't terminate child currently being built\n");
+        // printf("Can't terminate child currently being built\n");
         return -3;
     }
     else if (curr_block[i].status == TERMINATE)
@@ -95,7 +94,7 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
         perror("sem_post(3) error parent");
     }
 
-    printf("Terminating child %d|%d\n", node->timestamp, node->id);
+    // printf("Terminating child %d|%d\n", node->timestamp, node->id);
 }
 
 int spawn_child(node *node, void *shm, int shm_size, int *process_array)
@@ -139,7 +138,7 @@ int spawn_child(node *node, void *shm, int shm_size, int *process_array)
     }
     else if (pid == 0)
     {
-        printf("Spawn %d:%d/%d\n", i, child_data.id, getpid());
+        // printf("Spawn %d:%d/%d\n", i, child_data.id, getpid());
         child(child_data, shm_size);
     }
     else
@@ -185,9 +184,11 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     print_map(S_map);
 
     block *curr_block = (block *)(segment + sizeof(int));
-    while (loop_iter < 50)
+    while (loop_iter < 850)
     {
         // usleep(100000);
+        usleep(1000);
+
 
             printf("Loop:%d<-------------\n", *shm_loop_iter);
         
@@ -202,7 +203,7 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
                 }
                 int status;
                 pid_t exited_pid = *(pid_t *)curr_block[i].line;
-                printf("Found exited:[%d|%d,%d|%p]\n\n", i, process_array[i], exited_pid, &(curr_block[i].status));
+                // printf("Found exited:[%d|%d,%d|%p]\n\n", i, process_array[i], exited_pid, &(curr_block[i].status));
                 collected[cl++]=process_array[i];
                 process_array[i] = 0;
                 waitpid(exited_pid, &status, 0);
@@ -282,7 +283,7 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
             printf("It woke\n");
             int status;
             pid_t exited_pid = *(pid_t *)curr_block[i].line;
-            printf("Force Found exited:[%d|%d,%d|%d]\n", i, process_array[i], exited_pid, curr_block[i].status);
+            // printf("Force Found exited:[%d|%d,%d|%d]\n", i, process_array[i], exited_pid, curr_block[i].status);
             process_array[i] = 0;
             if(waitpid(exited_pid, &status, 0)==-1){
                 printf("\n\n\n\n\n\n\nError %d<---",i);

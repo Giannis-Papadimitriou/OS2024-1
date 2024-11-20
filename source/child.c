@@ -84,12 +84,10 @@ void child(child_data data,int shm_size){
         //wait for termination or new line
         //printf("Child [%d|%d] waiting\n",data.time_created,data.id);
         // printf("Child [%d|%d] waiting:%d\n",data.time_created,data.id,mystatus);//undo
-        printf("Waiting: %d:[%d]\n",data.id,my_block->status);
         if (sem_wait(loop_semaphore) < 0) {
             perror("sem_wait(3) failed on child");
         }
         mystatus =my_block->status;
-        printf("No longer: %d:[%d]\n",data.id,my_block->status);
         // usleep(1000);
         // printf("Child [%d|%d] passed:%d\n",data.time_created,data.id,mystatus);//undo
         if (mystatus==LINEINBUFFER){
@@ -99,7 +97,7 @@ void child(child_data data,int shm_size){
             messages_received++;
             //Print to standard out
             // printf("Child %d(%d):Bottom Text\n",data.id,messages_received);
-            printf("Child %d(%d):<%s>",data.id,messages_received,line);
+            printf("Child %d(%d):<%s",data.id,messages_received,line);
             my_block->status=WAITING;
             mystatus=WAITING;
         }
