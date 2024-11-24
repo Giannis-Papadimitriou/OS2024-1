@@ -184,7 +184,8 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     print_map(S_map);
 
     block *curr_block = (block *)(segment + sizeof(int));
-    while (loop_iter < 850)
+    int exit_condition = 0;
+    while (loop_iter < 850 && !exit_condition)
     {
         // usleep(100000);
         usleep(1000);
@@ -220,6 +221,12 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
         *shm_loop_iter = loop_iter;
         if (T_map && T_map->curr_node)
         {
+            if (T_map->curr_node->id==-1 && T_map->curr_node->timestamp==loop_iter)
+            {
+                exit_condition=1;
+                continue;
+            }
+            
             check_timestamp_T(loop_iter, T_map, &running_children, process_array, segment); // check if children need termination and do so
         }
         if (S_map && S_map->curr_node)
@@ -307,27 +314,47 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 // FILE MUST END WITH NEW LINE
 cmap_addr timestamp_table_innit(int fd, config_map *S_map, config_map *T_map)
 {
-
+    char exit_string[5]="EXIT";
     char line[LINE_LIMIT];
-    while (get_line(fd, line) != 1)
+    int exit_condition=0;
+    while (get_line(fd, line) != 1 && !exit_condition) 
     {
+
+
+        
+        
         // printf("Got line:%s",line);
         char c = line[0];
         int i = 0;
         char str_timestamp[16];
-        while (c != '-')
+        while (c != '-' && c != ' ')
         {
             str_timestamp[i] = c;
             c = line[++i];
         }
         str_timestamp[i] = '\0';
         int timestamp = atoi(str_timestamp);
-        i++; // skip over the -
+        i++; // skip over the space
+        if (memcmp(line+sizeof(char)*i,exit_string,4)==0){
+            add_node(S_map, timestamp, -1);
+            add_node(T_map, timestamp, -1);
+            exit_condition=1;
+            continue;
+        }
+
+
+        if (line[i]!='C')
+        {
+            printf("Expected C before process id\n");
+            exit(-1);
+        }
+        i++; // skip over the C
+        
 
         int offset = i; // offset from start till the first character after the -
         c = line[i];
         char str_pid[16];
-        while (c != '-')
+        while (c != '-' && c != ' ')
         {
             str_pid[i - offset] = c;
             c = line[++i];

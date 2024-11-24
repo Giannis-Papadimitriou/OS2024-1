@@ -23,12 +23,8 @@ parent enters main mode:
         send a message
         if T was called last loop receive exit codes
 
-
-todo:harder tests
 todo: increase semaphore limit
 
-
-todo:make terminates go through
 todo: free mallocs
 todo: check shm/semas
 todo: check shm/semas fds
