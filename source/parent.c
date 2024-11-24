@@ -17,15 +17,22 @@ void send_line(parent_data *data, int sem_num)
     {
         // printf("[%d]:(%d,%d)|", l, curr_block[l].status, data->process_array[l]);
     }
+    int checked[sem_num];
+    memset(checked,0,sizeof(int)*sem_num);
 
-    int i = 0;
+    int i = rand()%sem_num;
+    int checked_total=0;
     while (curr_block[i].status != WAITING)
     {
-        i++;
-        if (i == sem_num)
-        {
+        checked[i]=1;
+        checked_total++;
+        if (checked_total == sem_num){
             // printf("All children are busy\n");
             return;
+        }
+        i=rand()%sem_num;
+        while (checked[i]==1){
+            i=(i+1)%sem_num;
         }
     }
     if (get_line(data->line_fd, curr_block[i].line) == 1)
@@ -155,6 +162,8 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     int collected[100];
     int cl=0;
     parent_data data = *arg_data;
+        srand(time(NULL));
+
 
     int *process_array = malloc(sizeof(int) * sem_num);
     for (int i = 0; i < sem_num; i++)

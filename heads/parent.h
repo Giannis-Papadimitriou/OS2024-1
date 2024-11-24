@@ -1,6 +1,7 @@
 #ifndef PARENT_H
 #define PARENT_H
 
+#include <time.h>
 #include <fcntl.h>
 #include <semaphore.h>
 #include <stdio.h>
