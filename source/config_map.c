@@ -18,24 +18,38 @@ int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int*
 int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num,void* shm,int shm_size,int* process_array){
     node* S_curr=S_map->curr_node;
     // printf("Loop:%d Next spawn:%d\n",timestamp,S_curr->timestamp);
-    static int f=0;
     if (S_curr->timestamp == timestamp){
-        int l=0;
         while (S_curr && *running_children < sem_num){
             // printf("S_curr(%d/%d)",f++,getpid());
             // printf(":[%d,%d]",S_curr->id,S_curr->timestamp);
-            spawn_child(S_curr,shm,shm_size,process_array); 
-            (*running_children)++;
+            int process_already_exists=0;
+            for (int l = 0; l < sem_num && !process_already_exists ; l++)
+            {
+                if (process_array[l]==S_curr->id){
+                    process_already_exists=1;
+                }
+            }
+            if(!process_already_exists){
+                spawn_child(S_curr,shm,shm_size,process_array); 
+                (*running_children)++;
+            }
             S_curr=S_curr->next_node;
         }
 
         if (S_curr && *running_children == sem_num)
         {
+            printf("|j,process_array[j]|\n");
+            for (int j = 0; j < sem_num; j++)
+            {
+                printf("|%d,%d|\n", j, process_array[j]);
+            }
+            
             printf("\n\n\nToo many processes\n");
-            exit(0);
+            return -1;
         }
         S_map->curr_node = S_map->curr_node->next_timestamp_node;
     }
+    return 0;
 
 }
 
