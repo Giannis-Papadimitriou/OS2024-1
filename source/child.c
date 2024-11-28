@@ -117,7 +117,7 @@ void child(child_data data,int shm_size){
         else{
             printf("AVAILABLE:[%d] WAITING:[%d]LINEINBUFFER:[%d]TERMINATE:[%d]FORCE_TERMINATE[%d]BUILDING:[%d]EXITED[%d]\n",AVAILABLE,WAITING,LINEINBUFFER,TERMINATE,FORCE_TERMINATE,BUILDING,EXITED);
             printf("UNEXPECTED TYPE %d:[%d]\n",data.id,mystatus);
-            exit(-1);
+            // exit(-1);
         }
     }
     pid_t mypid = getpid();
