@@ -24,7 +24,7 @@ int get_line(int fd,char* buffer){
     int i=0, bytes_read;
     do{
         bytes_read = read(fd,&c,1);
-        if(i>LINE_LIMIT) exit(0);
+        if(i>LINE_LIMIT) {printf("Line longer than maximum. Increase LINE_LIMIT.\n"); exit(0);}
         buffer[i]=c;
         i++;
     }while(c!='\n' && bytes_read!=0);

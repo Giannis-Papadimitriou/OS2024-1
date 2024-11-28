@@ -38,14 +38,6 @@ sem_t* child_sem_open(int position,char* name_template){
 #endif
 
 void child(child_data data,int shm_size){
-    if (data.id==10000)
-    {
-        printf("THIS SHOULD NOT BE HAPPENING\n\n\n\n\n\n");
-        printf("THIS SHOULD NOT BE HAPPENING\n\n\n\n\n\n");
-        printf("THIS SHOULD NOT BE HAPPENING\n\n\n\n\n\n");
-        printf("THIS SHOULD NOT BE HAPPENING\n\n\n\n\n\n");
-    }
-    
     // printf("%d created\n",getpid());//undo
 
 
@@ -104,7 +96,7 @@ void child(child_data data,int shm_size){
             messages_received++;
             //Print to standard out
             // printf("Child %d(%d):Bottom Text\n",data.id,messages_received);
-            // printf("Child %d(%d):<%s",data.id,messages_received,line);
+            printf("Child %d(%d):%s",data.id,messages_received,line);
             my_block->status=WAITING;
             mystatus=WAITING;
         }
@@ -112,7 +104,7 @@ void child(child_data data,int shm_size){
             int time_exited;
             time_exited= *(int*)my_block->line;
             
-            // printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
+            printf("Child [%d|%d] terminated after %d loops and reading %d messages\n",data.time_created,data.id,time_exited-data.time_created,messages_received);
             
             //in line is current time
         }
@@ -130,16 +122,9 @@ void child(child_data data,int shm_size){
     }
     pid_t mypid = getpid();
     memcpy(my_block->line,&mypid,sizeof(pid_t));
-    // printf(" %d just wrote: %d though it should be  %d\n",data.id,getpid(),*(pid_t*) my_block->line);
-    // printf("Child [%d|%d] exiting loop:%d\n",data.time_created,data.id,mystatus);
-    // pid_t* shm_loop_iter = (pid_t*)my_block->line;
-    // *shm_loop_iter = data.pid;
-    pid_t tst = *(pid_t*) my_block->line;
-    // printf("Just checking %d|%d: %d|%p\n",data.id,getpid(),tst,(pid_t*) my_block->line);
-    // printf("Setting %d: %p\n",data.id,&(my_block->status));
 
     my_block->status=EXITED;
-    printf("Child [%d] posting position %d status:[%d]\n",data.id,data.position,my_block->status);//undo
+    // printf("Child [%d] posting position %d status:[%d]\n",data.id,data.position,my_block->status);//undo
     if (sem_post(close_semaphore) < 0)
     {
         perror("sem_post(3) error parent");

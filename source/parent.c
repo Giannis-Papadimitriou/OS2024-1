@@ -212,12 +212,6 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 
             if (curr_block[i].status == EXITED)
             {
-                printf("Consuming position %d ",i);
-                for (int f = 0; f < sem_num; f++)
-                {
-                        printf("[%d,%d|%d]", f, process_array[f], curr_block[f].status);
-                }
-                printf("\n");
                 
                 if (sem_wait(data.sems->close_array[i]) < 0) {
                     perror("sem_wait(3) failed on child");
@@ -230,7 +224,7 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
                 if (WIFEXITED(status))
                 {
                     int exit_code = WEXITSTATUS(status);
-                    // printf("Child [%d] exited with code: %d\n", exited_pid, exit_code);
+                    printf("Child [%d] exited with code: %d\n", exited_pid, exit_code);
                 }
                 curr_block[i].status = AVAILABLE;
             }
@@ -295,7 +289,7 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     {
         printf("%d,%d|", j, process_array[j]);
     }
-    printf("\n|j,collected[j]|");
+    // printf("\n|j,collected[j]|");
     for (j = 0; j < cl; j++)
     {
         printf("%d,%d|", j, collected[j]);
