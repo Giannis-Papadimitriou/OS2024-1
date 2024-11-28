@@ -5,7 +5,7 @@ then
     make
 fi
 
-rm /dev/shm/sem.*; rm /dev/shm/*.c
+# rm /dev/shm/sem.*; rm /dev/shm/*.c
 
 textfile="files/textfile.txt"
 num=13
