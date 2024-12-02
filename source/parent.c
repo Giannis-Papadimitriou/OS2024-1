@@ -163,7 +163,6 @@ int spawn_child(node *node, void *shm, int shm_size, int *process_array)
 void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 {
 
-    int collected[10000];
     int cl=0;
     parent_data data = *arg_data;
         srand(time(NULL));
@@ -192,19 +191,17 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     T_map = ptr.T_mapaddr;
     S_map = ptr.S_mapaddr;
 
-    printf("Terminates:\n");
+    // printf("Terminates:\n");
     // print_map(T_map);
-    printf("Spawns:\n");
+    // printf("Spawns:\n");
     // print_map(S_map);
 
     block *curr_block = (block *)(segment + sizeof(int));
     int exit_condition = 0;
     while (loop_iter < 100000 && !exit_condition)
     {
-        // usleep(100000);
 
-    if(loop_iter%1000==0 || loop_iter>9990)
-            printf("Loop:%d<-------------\n", *shm_loop_iter);
+            // printf("Loop:%d<-------------\n", *shm_loop_iter);
         
 
         for (int i = 0; i < sem_num; i++)
@@ -212,13 +209,11 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 
             if (curr_block[i].status == EXITED)
             {
-                
                 if (sem_wait(data.sems->close_array[i]) < 0) {
                     perror("sem_wait(3) failed on child");
                 }
                 int status;
                 pid_t exited_pid = *(pid_t *)curr_block[i].line;
-                collected[cl++]=process_array[i];
                 process_array[i] = 0;
                 waitpid(exited_pid, &status, 0);
                 if (WIFEXITED(status))
@@ -237,6 +232,7 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
             if (T_map->curr_node->id==-1 && T_map->curr_node->timestamp==loop_iter)
             {
                 exit_condition=1;
+                *shm_loop_iter=-loop_iter;
                 continue;
             }
             
@@ -259,15 +255,17 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     // waiting for exit codes should fix this
     // sleep(1);
     curr_block = (block *)(segment + sizeof(int));
-    for (int i = 0; i < sem_num; i++)
-    {
-
-        if (curr_block[i].status != EXITED)
-        {
+    for (int i = 0; i < sem_num; i++){
+        if (curr_block[i].status != EXITED){
+            // if(curr_block[i].status == LINEINBUFFER){ 
+            //     printf("Waiting on %d\n",i);  
+            //     if (sem_wait(data.sems->close_array[i]) < 0) {
+            //         perror("sem_wait(3) failed on child");
+            //     }
+            // }
             memcpy(&(curr_block[i]), segment, sizeof(int)); // write loop for child to read
             curr_block[i].status = FORCE_TERMINATE;
-            if (sem_post(p_data->sems->loop_array[i]) < 0)
-            {
+            if (sem_post(p_data->sems->loop_array[i]) < 0){
                 perror("sem_post(3) error parent");
             }
         }
@@ -275,7 +273,7 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 
     printf("======\n======\n======\n======\n");
     // print_map(T_map);
-    printf("--%d--\n", running_children);
+    printf("--%d processes still running--\n", running_children);
     // print_map(S_map);
     printf("========================\n");
 
@@ -284,22 +282,14 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 
 
      int j = 0;
-    printf("|j,process_array[j]|");
-    for (j = 0; j < p_data->sem_num; j++)
-    {
-        printf("%d,%d|", j, process_array[j]);
-    }
-    // printf("\n|j,collected[j]|");
-    for (j = 0; j < cl; j++)
-    {
-        printf("%d,%d|", j, collected[j]);
-    }
-    printf("\n|Pid:%d\n|",getpid());
-    
+    // printf("|j,process_array[j]|");
+    // for (j = 0; j < p_data->sem_num; j++)
+    // {
+    //     printf("%d,%d|", j, process_array[j]);
+    // }    
 
     for (int i = 0; i < sem_num; i++){
         if (process_array[i]!=0 && (curr_block[i].status == EXITED || curr_block[i].status==FORCE_TERMINATE) ){
-            printf("-->%d:[%d,%d]<--\n",i,process_array[i],curr_block[i].status);
             if (sem_wait(data.sems->close_array[i]) < 0) {
                 perror("sem_wait(3) failed on child");
             }
@@ -496,7 +486,6 @@ void parent(char *configfile, char *textfile, int sem_num)
     sem_t **close_array = malloc(sem_num * sizeof(sem_t *));
     semarr_innit(sem_num, &close_array,CLOSE_SEM_NAME_TEMPLATE);
 
-    asd
     printf("\n\n\n");
 
 
@@ -506,18 +495,13 @@ void parent(char *configfile, char *textfile, int sem_num)
     data.line_fd = line_fd;
     data.shm_segment = segment;
     data.sems=malloc(sizeof(sem_sets));
-    asd
     data.sems->loop_array = loop_array;
     data.sems->close_array = close_array;
-    asd
     data.sem_num = sem_num;
-    asd
     int shm_size = sizeof(int) + sem_num * sizeof(block);
-    asd
     main_loop(&data, sem_num, shm_size);
     int l = *(int *)segment;
 
-    asd
 
     block *cur = (block *)(segment + sizeof(int));
 
@@ -543,6 +527,6 @@ void parent(char *configfile, char *textfile, int sem_num)
     }
     free(close_array);
     free(loop_array);
-    asd
+    printf("Cleanup complete. Exiting.\n");
     return;
 }

@@ -5,7 +5,6 @@
 #include "../heads/parent.h"
 
 #define LINE_LIMIT 100
-#define asd printf("%d\n",__LINE__);
 
 int get_line(int,char*);
 
