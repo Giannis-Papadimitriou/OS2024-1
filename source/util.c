@@ -21,7 +21,7 @@ int my_open(char* filename){
 int get_line(int fd,char* buffer){
     
     char c;
-    int i=0, bytes_read;
+    int i=0, bytes_read=0;
     do{
         bytes_read = read(fd,&c,1);
         if(i>LINE_LIMIT) {printf("Line longer than maximum. Increase LINE_LIMIT.\n"); exit(0);}

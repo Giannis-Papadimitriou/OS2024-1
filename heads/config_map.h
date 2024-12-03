@@ -24,6 +24,7 @@ typedef struct {
     config_map* T_mapaddr;
 }cmap_addr;
 
+void cmap_dealloc(config_map*);
 
 config_map* cmap_init(int, int );
 

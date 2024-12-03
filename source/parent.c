@@ -310,10 +310,17 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     }
 
 
+    cmap_dealloc(T_map);
+    cmap_dealloc(S_map);
+
+    free(T_map);
+    free(S_map);
+    
 
 
-    // free(process_array);
-    // process_array=NULL;
+
+    free(process_array);
+    process_array=NULL;
 }
 
 // FILE MUST END WITH NEW LINE
@@ -532,6 +539,7 @@ void parent(char *configfile, char *textfile, int sem_num)
     }
     free(close_array);
     free(loop_array);
+    free(data.sems);
     printf("Cleanup complete. Exiting.\n");
     return;
 }

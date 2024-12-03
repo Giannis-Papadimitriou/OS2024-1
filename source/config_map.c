@@ -53,6 +53,20 @@ int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int 
 
 }
 
+void cmap_dealloc(config_map* map){
+
+    node* curr_node = map->first_node;
+    while (curr_node){
+        node* inner_curr=curr_node;
+        curr_node=curr_node->next_timestamp_node;
+        while (inner_curr){
+            node* inner_prev = inner_curr;
+            inner_curr=inner_curr->next_node;
+            free(inner_prev);
+        }
+    }
+}
+
 config_map* cmap_init(int timestamp, int id){
     config_map* cmap = malloc(sizeof(config_map));
 
