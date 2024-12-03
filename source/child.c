@@ -7,7 +7,8 @@ sem_t* child_sem_open(int position,char* name_template){
     sem_t* ret;
     char sem_name[TEMPLATE_NAMESIZE];
     strcpy(sem_name,name_template);
-    sem_name[0]='A'+position;
+    sem_name[0]='A'+position%57;
+    sem_name[1]='A'+position/57;
     ret = sem_open(sem_name, O_RDWR);
     if (ret == SEM_FAILED) {
         perror("child sem_open(3) failed");

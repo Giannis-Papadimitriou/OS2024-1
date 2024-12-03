@@ -412,7 +412,7 @@ cmap_addr timestamp_table_innit(int fd, config_map *S_map, config_map *T_map)
 void semarr_innit(int num, sem_t ***array,char* name_template)
 {
 
-    if (num > 57)
+    if (num > 57*57)
     {
         printf("semaphore limit passed\n");
         exit(-1);
@@ -425,7 +425,8 @@ void semarr_innit(int num, sem_t ***array,char* name_template)
     strcpy(sem_name,name_template);
     for (int i = 0; i < num; i++)
     {
-        sem_name[0] = 'A' + i;
+        sem_name[0] = 'A' + i%57;
+        sem_name[1] = 'A' + i/57;
         arr[i] = sem_open(sem_name, O_CREAT | O_EXCL, 0777, 0);
         if (arr[i] == SEM_FAILED)
         {
@@ -500,6 +501,8 @@ void parent(char *configfile, char *textfile, int sem_num)
     data.sem_num = sem_num;
     int shm_size = sizeof(int) + sem_num * sizeof(block);
     main_loop(&data, sem_num, shm_size);
+    
+
     int l = *(int *)segment;
 
 
@@ -514,8 +517,10 @@ void parent(char *configfile, char *textfile, int sem_num)
     char close_semnam[TEMPLATE_NAMESIZE] = CLOSE_SEM_NAME_TEMPLATE;
     for (size_t i = 0; i < sem_num; i++)
     {
-        open_semnam[0] = 'A' + i;
-        close_semnam[0] = 'A' + i;
+        open_semnam[0] = 'A' + i%57;
+        open_semnam[1] = 'A' + i/57;
+        close_semnam[0] = 'A' + i%57;
+        close_semnam[1] = 'A' + i/57;
         if (sem_close(loop_array[i]) == -1)
             perror("semclose fail");
         if (sem_unlink(open_semnam) == -1)
