@@ -53,7 +53,6 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
 {
     int i = 0, children_checked = 0;
 
-    // printf("Checking if should terminate %d\n", node->id);
     while (i < p_data->sem_num && process_array[i] != node->id && children_checked < *running_children)
     {
         if (process_array[i] != 0)
@@ -63,11 +62,6 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
         i++;
     }
     int j = 0;
-    // printf("|j,process_array[j]|");
-    // for (j = 0; j < p_data->sem_num; j++)
-    // {
-    //     printf("%d,%d|", j, process_array[j]);
-    // }
 
     block *curr_block = (block *)(shm + sizeof(int));
     if (i == p_data->sem_num || process_array[i] != node->id)
@@ -99,13 +93,11 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
 
     memcpy((curr_block[i].line), shm, sizeof(int)); // write current loop for child to read
     curr_block[i].status = TERMINATE;
-    // process_array[i]=0; //<---todo
     if (sem_post(p_data->sems->loop_array[i]) < 0)
     {
         perror("sem_post(3) error parent");
     }
 
-    // printf("Terminating child %d|%d\n", node->timestamp, node->id);
 }
 
 int spawn_child(node *node, void *shm, int shm_size, int *process_array)
@@ -116,17 +108,7 @@ int spawn_child(node *node, void *shm, int shm_size, int *process_array)
     child_data.time_created = node->timestamp;
 
     block *curr_block = (block *)(shm + sizeof(int));
-    static int z = 0;
     int i = 0;
-    // printf("%d Looking for next child spot/%d:",z++,p_data->sem_num);
-    // printf("|[i]:(status,process_array)|");
-    // for (int l = 0; l < p_data->sem_num; l++)
-    // {
-    //     printf("|[%d]:(%d,%d)|",l,curr_block[l].status,p_data->process_array[l]);
-
-    // }
-
-    // printf("This guy..\n");
 
     while (curr_block[i].status != AVAILABLE)
     {
@@ -136,10 +118,6 @@ int spawn_child(node *node, void *shm, int shm_size, int *process_array)
     child_data.position = i;
     curr_block[i].status = BUILDING;
 
-    // todo: swap if statements,
-    // change child's available to exit,
-    // check inner exit for loop
-    // check if process_array[i]=0 should be changed there or afterwards
 
     pid_t pid = fork();
     if (pid == -1)
@@ -154,22 +132,20 @@ int spawn_child(node *node, void *shm, int shm_size, int *process_array)
     }
     else
     {
-        // static int times = 0;
         process_array[i] = child_data.id;
-        // printf("I am parent %d:{%d}\n",++times);
     }
 }
 
-void main_loop(parent_data *arg_data, int sem_num, int shm_size)
+void main_loop(parent_data *arg_data, int shm_size)
 {
 
-    int cl=0;
+    int sem_num = arg_data->sem_num;
     parent_data data = *arg_data;
-        srand(time(NULL));
+    srand(time(NULL));
 
 
-    int *process_array = malloc(sizeof(int) * sem_num);
-    memset(process_array,0,sizeof(int)*sem_num);
+    int* process_array = malloc(sizeof(int) * sem_num);
+    memset(process_array,0,sizeof(int) * sem_num);
     for (int i = 0; i < sem_num; i++)
     {
         process_array[i] = 0;
@@ -198,17 +174,11 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 
     block *curr_block = (block *)(segment + sizeof(int));
     int exit_condition = 0;
-    while (loop_iter < 100000 && !exit_condition)
-    {
-
-            // printf("Loop:%d<-------------\n", *shm_loop_iter);
-        
-
-        for (int i = 0; i < sem_num; i++)
-        {
-
-            if (curr_block[i].status == EXITED)
-            {
+    // Just in case terminate loop if exit_condition is never met
+    while (loop_iter < 1000000 && !exit_condition){
+        //collect finished processes and reopen the slot
+        for (int i = 0; i < sem_num; i++){
+            if (curr_block[i].status == EXITED){
                 if (sem_wait(data.sems->close_array[i]) < 0) {
                     perror("sem_wait(3) failed on child");
                 }
@@ -227,42 +197,29 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
 
         loop_iter++;
         *shm_loop_iter = loop_iter;
-        if (T_map && T_map->curr_node)
-        {
-            if (T_map->curr_node->id==-1 && T_map->curr_node->timestamp==loop_iter)
-            {
+        if (T_map && T_map->curr_node){
+            //last loop
+            if (T_map->curr_node->id==-1 && T_map->curr_node->timestamp==loop_iter){
                 exit_condition=1;
                 *shm_loop_iter=-loop_iter;
                 continue;
             }
-            
             check_timestamp_T(loop_iter, T_map, &running_children, process_array, segment); // check if children need termination and do so
         }
-        if (S_map && S_map->curr_node)
-        {
-
+        if (S_map && S_map->curr_node){
             if(check_timestamp_S(loop_iter, S_map, &running_children, sem_num, segment, shm_size, process_array)==-1){
                 printf("Tried to spawn process while there was no space for it. Exiting.\n");
                 break;
             }
         }
-        // if (running_children!=0)
         send_line(&data, sem_num);
     }
 
 
 
-    // waiting for exit codes should fix this
-    // sleep(1);
     curr_block = (block *)(segment + sizeof(int));
     for (int i = 0; i < sem_num; i++){
         if (curr_block[i].status != EXITED){
-            // if(curr_block[i].status == LINEINBUFFER){ 
-            //     printf("Waiting on %d\n",i);  
-            //     if (sem_wait(data.sems->close_array[i]) < 0) {
-            //         perror("sem_wait(3) failed on child");
-            //     }
-            // }
             memcpy(&(curr_block[i]), segment, sizeof(int)); // write loop for child to read
             curr_block[i].status = FORCE_TERMINATE;
             if (sem_post(p_data->sems->loop_array[i]) < 0){
@@ -272,22 +229,10 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     }
 
     printf("======\n======\n======\n======\n");
-    // print_map(T_map);
     printf("--%d processes still running--\n", running_children);
-    // print_map(S_map);
     printf("========================\n");
 
-
-
-
-
-     int j = 0;
-    // printf("|j,process_array[j]|");
-    // for (j = 0; j < p_data->sem_num; j++)
-    // {
-    //     printf("%d,%d|", j, process_array[j]);
-    // }    
-
+    // collect processes that terminated after main loop
     for (int i = 0; i < sem_num; i++){
         if (process_array[i]!=0 && (curr_block[i].status == EXITED || curr_block[i].status==FORCE_TERMINATE) ){
             if (sem_wait(data.sems->close_array[i]) < 0) {
@@ -295,10 +240,8 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
             }
             int status;
             pid_t exited_pid = *(pid_t *)curr_block[i].line;
-            // printf("Force Found exited:[%d|%d,%d|%d]\n", i, process_array[i], exited_pid, curr_block[i].status);
             process_array[i] = 0;
             if(waitpid(exited_pid, &status, 0)==-1){
-                printf("\n\n\nError %d<---",i);
                 perror("waitpd:");
             }
             if (WIFEXITED(status)){
@@ -310,14 +253,14 @@ void main_loop(parent_data *arg_data, int sem_num, int shm_size)
     }
 
 
+    //cleanup
     cmap_dealloc(T_map);
     cmap_dealloc(S_map);
 
     free(T_map);
+    T_map=NULL;
     free(S_map);
-    
-
-
+    S_map=NULL;
 
     free(process_array);
     process_array=NULL;
@@ -494,7 +437,6 @@ void parent(char *configfile, char *textfile, int sem_num)
     sem_t **close_array = malloc(sem_num * sizeof(sem_t *));
     semarr_innit(sem_num, &close_array,CLOSE_SEM_NAME_TEMPLATE);
 
-    printf("\n\n\n");
 
 
     // closing
@@ -507,19 +449,16 @@ void parent(char *configfile, char *textfile, int sem_num)
     data.sems->close_array = close_array;
     data.sem_num = sem_num;
     int shm_size = sizeof(int) + sem_num * sizeof(block);
-    main_loop(&data, sem_num, shm_size);
+    main_loop(&data, shm_size);
     
 
-    int l = *(int *)segment;
 
 
-    block *cur = (block *)(segment + sizeof(int));
-
+    //cleanup
     if (shm_unlink(SHM_PATH) == -1)
         perror("unlink fail");
     if (close(line_fd) == -1)
         perror("close fail");
-    // Need a loop for the semaphores
     char open_semnam[TEMPLATE_NAMESIZE] = LOOP_SEM_NAME_TEMPLATE;
     char close_semnam[TEMPLATE_NAMESIZE] = CLOSE_SEM_NAME_TEMPLATE;
     for (size_t i = 0; i < sem_num; i++)

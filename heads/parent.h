@@ -56,7 +56,7 @@ int spawn_child(node*,void*,int,int*);
 
 int terminate_child(node*,int*,int*,void*);
 
-void main_loop(parent_data*,int,int);
+void main_loop(parent_data*,int);
 
 void semarr_innit(int,sem_t***,char*);
 

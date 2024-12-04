@@ -23,12 +23,9 @@ parent enters main mode:
         send a message
         if T was called last loop receive exit codes
 
-todo: increase semaphore limit
 
-todo: free mallocs
-todo: check shm/semas
-todo: check shm/semas fds
 todo: random lines instead of 1 at a time
+todo: check shm/semas fds
 
 todo: major cleanup
 todo: move some function to other files
