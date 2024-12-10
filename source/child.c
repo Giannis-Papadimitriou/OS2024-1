@@ -70,24 +70,17 @@ void child(child_data data,int shm_size){
             char line[LINE_LIMIT];
             //assume null terminated
             //Print to standard out
-            // printf("Child %d(%d):Bottom Text\n",data.id,messages_received);
             if (*(int*)segment>=0){
                 strcpy(line,my_block->line);
                 messages_received++;
                 printf("Child %d(%d):%s",data.id,messages_received,line);
-                /* code */
             }
             
             if(my_block->status==LINEINBUFFER){
                 my_block->status=WAITING;
             }
             mystatus=my_block->status;
-            // if(curr_loop<0){
-            //     printf("Posting %d\n",data.position);
-            //     if (sem_post(close_semaphore) < 0){
-            //         perror("sem_post(3) error parent");
-            //     }
-            // }
+
         }
         else if(mystatus == TERMINATE){
             int time_exited;
@@ -115,7 +108,6 @@ void child(child_data data,int shm_size){
     memcpy(my_block->line,&mypid,sizeof(pid_t));
 
     my_block->status=EXITED;
-    // printf("Child [%d] posting position %d status:[%d]\n",data.id,data.position,my_block->status);//undo
     if (sem_post(close_semaphore) < 0)
     {
         perror("sem_post(3) error parent");

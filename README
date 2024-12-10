@@ -1,0 +1,83 @@
+IOANNIS PAPADIMITRIOY / sdi180150
+
+Note: the following README is written under the assumption the reader is aware of the project description and specifications given.
+
+Github link: https://github.com/Giannis-Papadimitriou/OS2024-1.git
+
+The project implements an interprocess communication system, between a singular parent process and any number (up to 3249) child processes using semaphores and shared memory to achieve synchronization and communication respectively.
+
+The parent process runs a main loop until the EXIT timestamp is found, after which it synchronizes with and terminates the child processes, printing out their exit codes. The main loop consists of - in that order - collecting child processes that were already terminating, iterating the loop counter, terminating old processes, spawning new processes and sending a single line for a randomly selected available process to read.
+
+It is recommended you run the bash script run.sh, which builds the project through make and runs the executable with some tested arguments.
+
+The executable has the following format.
+
+./main textfile num
+
+where textfile is the directory of the location of the file containing the lines to be sent to the child processes while num is the number of semaphores created (also the maximum number of child processes that can be running at any time since one semaphore is allocated to each running process)
+
+Overview:
+
+The program uses a singular shared memory segment to communicate between the children and parent process. The size of that segment is equal to the SEMAPHORE_NUMBER*BLOCK_SIZE + INT*1, where a block is defined as:
+
+typedef struct {
+    char line[LINE_LIMIT];
+    enum block_status status;
+}block;
+
+and the int is reserved for the loop current loop iteration, only written to by the parent process.
+
+The status enum indicates the current status of the block, defined as: 
+
+typedef enum block_status{
+    AVAILABLE,
+    WAITING,
+    LINEINBUFFER,
+    TERMINATE,
+    FORCE_TERMINATE,
+    BUILDING,
+    EXITED,
+}block_status;
+
+The general idea for each value is:
+AVAILABLE - no process running in this block
+WAITING - process in this block is waiting for new command ( termination or new line to read )
+LINEINBUFFER - in the line[] segment of the block a line to be read has been written by the parent process
+TERMINATE - the process should terminate
+FORCE_TERMINATE - the process should immediately terminate because the parent has exited the main loop
+BUILDING - the process has not entered the main loop yet ( so it can’t read a new line yet ) 
+EXITED - the process has exited after a termination command and has left its pid in the line[] segment. The parent is expected to use this pid when calling waitpid() to get the exit status.
+
+Before entering the main loop the parent opens the two files for reading, initializes the shared memory segment and the two sets of named semaphores for synchronization.
+Note that the semaphores are named out of a desire to explore how they’re used rather than a practical reason. The name templates, which are later modified for each named semaphore, are in parent.h, defined as #define LOOP_SEM_NAME_TEMPLATE "loop_sem" and #define CLOSE_SEM_NAME_TEMPLATE "closesem" respectively.
+The semaphore name is found by replacing the first letter with ‘A’ + i where i is the number of the current block. Eg. block 5’s associated semaphores are named Eoop_sem and Elosesem respectively.
+The position of the block is passed to the child argument upon creation so it knows which block and sempaphores to pick.
+
+The last major data structure that has not been mentioned is the config_map/timestamp_table, whose purpose is to look up any Spawn or Termination commands that should be issued at any loop iteration. 
+
+It has the following format: it is like a linked list containing the ids of the children ordered by an the loop iteration the S/T command should be executed, unless there’s multiple of the same command to be executed in the same loop iteration (eg. 50 C2 S followed by 50 C1 S). In that case an extra node is appended to the end of a second linked list associated with the current timestamp. As an example:
+
+5:1-2
+8:3
+15:1
+22:3-4-5
+25:-1
+
+The numbers before the semicolons are the loop iterations where the Spawn/Termination command should be executed and the numbers to the right are linked lists with the ids of the 
+processes to be spawned or terminated.
+The -1 indicates EXIT.
+There are two configmaps used, one for termination and for spawn commands respectively. 
+
+The reason this is used rather than reading line by line straight from the file is the case where the configfile isn’t ordered by time. The config_map is always ordered by time. 
+
+The config_map is initialized/destroyed once at the before and after the main loop. It contains a pointer to the next first node of the next timestamp. Eg. if the current iteration is 17 the curr_node would point to node 22 with id 3. This is updated during the main loop as the loop iteration increases.
+
+Some exceptions:
+In the case of the termination command map, if a termination command is called for a child that is currently busy reading, that command will be added to the current iteration+1, repeating each loop until the child is terminated.
+If more processes than available semaphores are created the program exits.
+No new messages are read after the main program exited (not even previously sent messages)
+
+
+
+
+
