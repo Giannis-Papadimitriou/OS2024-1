@@ -35,4 +35,4 @@ clean:
 	rm $(OBJ) $(FINAL)
 
 tar:
-	tar -czvf IoannisPapadimitriouProject1.tar.gz src objs heads Makefile README
+	tar -czvf IoannisPapadimitriouProject1.tar.gz source objs heads files makefile README run.sh

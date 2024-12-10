@@ -12,18 +12,12 @@ void send_line(parent_data *data, int sem_num)
 
 
     block *curr_block = (block *)(data->shm_segment + sizeof(int));
-    // printf("[Block]:(stats,process)|");
-    for (int l = 0; l < data->sem_num; l++)
-    {
-        // printf("[%d]:(%d,%d)|", l, curr_block[l].status, data->process_array[l]);
-    }
     int checked[sem_num];
     memset(checked,0,sizeof(int)*sem_num);
 
     int i = rand()%sem_num;
     int checked_total=0;
-    while (curr_block[i].status != WAITING)
-    {
+    while (curr_block[i].status != WAITING){
         checked[i]=1;
         checked_total++;
         if (checked_total == sem_num){
@@ -36,13 +30,11 @@ void send_line(parent_data *data, int sem_num)
         }
     }
     if (get_line(data->line_fd, curr_block[i].line) == 1)
-        return;
-    // printf("Sending line to %d:%d\n", i, data->process_array[i]);
+        return; //EOF
 
     curr_block[i].status = LINEINBUFFER;
 
-    if (sem_post(p_data->sems->loop_array[i]) < 0)
-    {
+    if (sem_post(p_data->sems->loop_array[i]) < 0){
         perror("sem_post(3) error parent");
     }
 }
@@ -93,8 +85,7 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
 
     memcpy((curr_block[i].line), shm, sizeof(int)); // write current loop for child to read
     curr_block[i].status = TERMINATE;
-    if (sem_post(p_data->sems->loop_array[i]) < 0)
-    {
+    if (sem_post(p_data->sems->loop_array[i]) < 0){
         perror("sem_post(3) error parent");
     }
 
@@ -145,7 +136,6 @@ void main_loop(parent_data *arg_data, int shm_size)
 
 
     int* process_array = malloc(sizeof(int) * sem_num);
-    memset(process_array,0,sizeof(int) * sem_num);
     for (int i = 0; i < sem_num; i++)
     {
         process_array[i] = 0;
@@ -167,14 +157,9 @@ void main_loop(parent_data *arg_data, int shm_size)
     T_map = ptr.T_mapaddr;
     S_map = ptr.S_mapaddr;
 
-    // printf("Terminates:\n");
-    // print_map(T_map);
-    // printf("Spawns:\n");
-    // print_map(S_map);
-
     block *curr_block = (block *)(segment + sizeof(int));
     int exit_condition = 0;
-    // Just in case terminate loop if exit_condition is never met
+    // Just in case terminate loop if exit_condition is never met, though that should not be the case.
     while (loop_iter < 1000000 && !exit_condition){
         //collect finished processes and reopen the slot
         for (int i = 0; i < sem_num; i++){
@@ -266,161 +251,6 @@ void main_loop(parent_data *arg_data, int shm_size)
     process_array=NULL;
 }
 
-// FILE MUST END WITH NEW LINE
-cmap_addr timestamp_table_innit(int fd, config_map *S_map, config_map *T_map)
-{
-    char exit_string[5]="EXIT";
-    char line[LINE_LIMIT];
-    int exit_condition=0;
-    while (get_line(fd, line) != 1 && !exit_condition) 
-    {
-
-
-        
-        
-        // printf("Got line:%s",line);
-        char c = line[0];
-        int i = 0;
-        char str_timestamp[16];
-        while (c != '-' && c != ' ')
-        {
-            str_timestamp[i] = c;
-            c = line[++i];
-        }
-        str_timestamp[i] = '\0';
-        int timestamp = atoi(str_timestamp);
-        i++; // skip over the space
-        if (memcmp(line+sizeof(char)*i,exit_string,4)==0){
-            add_node(S_map, timestamp, -1);
-            add_node(T_map, timestamp, -1);
-            exit_condition=1;
-            continue;
-        }
-
-
-        if (line[i]!='C')
-        {
-            printf("Expected C before process id\n");
-            exit(-1);
-        }
-        i++; // skip over the C
-        
-
-        int offset = i; // offset from start till the first character after the -
-        c = line[i];
-        char str_pid[16];
-        while (c != '-' && c != ' ')
-        {
-            str_pid[i - offset] = c;
-            c = line[++i];
-        }
-        str_pid[i - offset] = '\0';
-        int id = atoi(str_pid);
-        i++;
-        if (line[i] == 'S')
-        {
-            if (!S_map)
-            {
-                S_map = cmap_init(timestamp, id);
-            }
-            else
-            {
-                add_node(S_map, timestamp, id);
-            }
-        }
-        else if (line[i] == 'T')
-        {
-            if (!T_map)
-            {
-                T_map = cmap_init(timestamp, id);
-            }
-            else
-            {
-                add_node(T_map, timestamp, id);
-            }
-        }
-        else
-        {
-            printf("UNEXPECTED CONFIGFILE FORMAT\n");
-            exit(-1);
-        }
-    }
-    if (T_map)
-        T_map->curr_node = T_map->first_node;
-    if (S_map)
-        S_map->curr_node = S_map->first_node;
-
-    cmap_addr ret;
-    ret.S_mapaddr = S_map;
-    ret.T_mapaddr = T_map;
-
-    if (close(fd) == -1)
-        perror("close fail");
-    return ret;
-}
-
-void semarr_innit(int num, sem_t ***array,char* name_template)
-{
-
-    if (num > 57*57)
-    {
-        printf("semaphore limit passed\n");
-        exit(-1);
-    }
-
-    sem_t **arr = *array;
-
-
-    char sem_name[TEMPLATE_NAMESIZE];
-    strcpy(sem_name,name_template);
-    for (int i = 0; i < num; i++)
-    {
-        sem_name[0] = 'A' + i%57;
-        sem_name[1] = 'A' + i/57;
-        arr[i] = sem_open(sem_name, O_CREAT | O_EXCL, 0777, 0);
-        if (arr[i] == SEM_FAILED)
-        {
-            perror("sem_open(3) error");
-            exit(-1);
-        }
-    }
-    return;
-}
-
-void *shm_innit(int num)
-{
-
-    int shm_fd = shm_open(SHM_PATH, O_CREAT | O_EXCL | O_RDWR, 0600);
-    if (shm_fd == -1)
-    {
-        perror("shared memory fail");
-        exit(-1);
-    }
-
-    int shm_size = sizeof(int) + num * sizeof(block);
-
-    if (ftruncate(shm_fd, sizeof(char) * shm_size) == -1)
-    {
-        perror("truncate fail");
-        exit(-1);
-    }
-    void *segment = mmap(NULL, sizeof(char) * shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    block *curr_block = (block *)(segment + sizeof(int));
-    memset(segment, 0, sizeof(char) * shm_size);
-
-    for (size_t i = 0; i < num; i++)
-    {
-        curr_block[i].status = AVAILABLE;
-    }
-
-    if (segment == MAP_FAILED)
-    {
-        perror("mmap fail");
-        exit(-1);
-    }
-    close(shm_fd);
-    return segment;
-}
 
 void parent(char *configfile, char *textfile, int sem_num)
 {

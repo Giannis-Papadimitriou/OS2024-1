@@ -10,6 +10,9 @@ int get_line(int,char*);
 
 int my_open(char*);
 
+void semarr_innit(int,sem_t***,char*);
+
+void *shm_innit(int);
 
 typedef struct {
     char line[LINE_LIMIT];

@@ -50,18 +50,13 @@ typedef struct {
 
 void send_line(parent_data*,int);
 
-//void receive_exitcodes(int* );
-
 int spawn_child(node*,void*,int,int*);
 
 int terminate_child(node*,int*,int*,void*);
 
 void main_loop(parent_data*,int);
 
-void semarr_innit(int,sem_t***,char*);
 
-
-void *shm_innit(int);
 
 void parent(char*,char*,int);
 

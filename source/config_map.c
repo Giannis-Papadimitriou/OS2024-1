@@ -1,11 +1,16 @@
 #include "../heads/config_map.h"
 #include "../heads/parent.h"
 
+
+// Check if any spawn commands are to be ran for a given timestamp. 
+// If true call terminate_child
 int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int* process_array,void* shm){
     node* T_curr=T_map->curr_node;
     if (T_curr->timestamp == timestamp){
         while (T_curr){
             int t_status = terminate_child(T_curr,running_children,process_array,shm);
+            // if the child could not be terminated because it was reading from shared memory or 
+            // in the process of being built try again next loop.
             if (t_status==-2 || t_status==-3){
                 add_node(T_map,timestamp+1,T_curr->id);
             }
@@ -15,6 +20,9 @@ int check_timestamp_T(int timestamp,config_map* T_map,int* running_children,int*
     }
 }
 
+
+// Check if any spawn commands are to be ran for a given timestamp. 
+// If true call spawn_child.
 int check_timestamp_S(int timestamp,config_map* S_map,int* running_children,int sem_num,void* shm,int shm_size,int* process_array){
     node* S_curr=S_map->curr_node;
     if (S_curr->timestamp == timestamp){
@@ -114,9 +122,6 @@ void print_map(config_map* cmap){
     if(!cmap) return;
 
     node* curr = cmap->first_node;
-    //printf("Currnode:%d|%d\n",cmap->curr_node->timestamp,cmap->curr_node->id);
-
-
     while (curr){
         printf("Timestamp:%d/",curr->timestamp);
         node* curr_inner=curr;
