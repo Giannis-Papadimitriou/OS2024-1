@@ -4,7 +4,6 @@
 #include "../heads/parent.h"
 #include "../heads/child.h"
 
-// TEMP
 parent_data *p_data = NULL;
 
 void send_line(parent_data *data, int sem_num)
@@ -53,7 +52,6 @@ int terminate_child(node *node, int *running_children, int *process_array, void 
         }
         i++;
     }
-    int j = 0;
 
     block *curr_block = (block *)(shm + sizeof(int));
     if (i == p_data->sem_num || process_array[i] != node->id)
